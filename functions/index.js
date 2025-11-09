@@ -55,10 +55,24 @@ export const docQuery = onCall({
       }))
     );
 
-    // Build a single text context by concatenating the selected documents.
-    const context = docsWithText
-      .map(doc => `Document ${doc.id}:\n${doc.text}\n`)
-      .join('\n\n');
+    // Calculate token budget: total budget minus reserved tokens for prompt
+    const availableTokens = MAX_INPUT_TOKENS - RESERVED_TOKENS_FOR_PROMPT;
+    const tokensPerDoc = Math.floor(availableTokens / docsWithText.length);
+
+    console.log(`Token budget: ${availableTokens} tokens total, ~${tokensPerDoc} per document`);
+
+    // Build context with smart truncation to respect token limits
+    const contextParts = docsWithText.map(doc => {
+      const truncated = truncateDocumentText(doc, doc.text, tokensPerDoc);
+      const tokens = estimateTokens(truncated);
+      console.log(`Document ${doc.id}: ${tokens} estimated tokens (limit: ${tokensPerDoc})`);
+      return `Document ${doc.id}:\n${truncated}`;
+    });
+
+    const context = contextParts.join('\n\n---\n\n');
+    const totalContextTokens = estimateTokens(context);
+
+    console.log(`Total context: ${totalContextTokens} estimated tokens (limit: ${MAX_INPUT_TOKENS})`);
 
     const apiKey = process.env.GOOGLE_GENAI_API_KEY || null;
     const prompt = `Based on the following documents, ${query}\n\nContext:\n${context}`;
@@ -104,6 +118,23 @@ export const docQuery = onCall({
       if (!resp.ok) {
         const txt = await resp.text().catch(() => '<no body>');
         console.debug('Generative API non-OK response:', resp.status, txt.slice(0, 400));
+
+        // Check for token-related errors
+        const isTokenError = resp.status === 400 && (
+          txt.toLowerCase().includes('token') ||
+          txt.toLowerCase().includes('too long') ||
+          txt.toLowerCase().includes('max') ||
+          txt.toLowerCase().includes('limit')
+        );
+
+        if (isTokenError) {
+          const err = new Error('Request exceeded token limits. Try asking about fewer documents or a more specific query.');
+          err.status = resp.status;
+          err.body = txt;
+          err.isTokenError = true;
+          throw err;
+        }
+
         const err = new Error(`Generative API returned ${resp.status}`);
         err.status = resp.status;
         err.body = txt;
@@ -187,6 +218,26 @@ export const docQuery = onCall({
 
   } catch (error) {
     console.error('AI Query Error:', error);
+
+    // Provide more helpful error messages for token-related issues
+    if (error.isTokenError) {
+      throw new HttpsError(
+        'resource-exhausted',
+        'Query exceeded token limits. The documents contain too much text. Try:\n' +
+        '1. Asking a more specific question\n' +
+        '2. Searching for documents with specific keywords\n' +
+        '3. Querying fewer documents at once'
+      );
+    }
+
+    // Check if it's a status 400 error which often indicates input problems
+    if (error.status === 400) {
+      throw new HttpsError(
+        'invalid-argument',
+        `Invalid request to AI service: ${error.message}`
+      );
+    }
+
     throw new HttpsError('internal', `AI processing failed: ${error.message}`);
   }
 });
@@ -196,6 +247,84 @@ const stopWords = new Set(['a', 'an', 'and', 'the', 'in', 'on', 'of', 'for', 'to
 const METADATA_FIELDS_TO_SEARCH = ['_Subject', 'Notes', 'File Name', '_From', '_To', '_CC'];
 const MAX_CONTEXT_DOCS = 5;
 const APP_ID = 'eDiscovery-App';
+
+// Token optimization configuration
+const MAX_INPUT_TOKENS = 30000; // Conservative limit to avoid model limits
+const CHARS_PER_TOKEN = 4; // Approximate: 1 token ≈ 4 characters
+const RESERVED_TOKENS_FOR_PROMPT = 500; // Reserve tokens for query and instructions
+const MIN_TOKENS_PER_DOC = 100; // Minimum tokens to include per document
+const SNIPPET_START_CHARS = 500; // Characters to include from start of document
+const SNIPPET_END_CHARS = 300; // Characters to include from end of document
+
+/**
+ * Estimates the number of tokens in a text string.
+ * Uses a simple approximation: 1 token ≈ 4 characters.
+ */
+function estimateTokens(text) {
+  if (!text) return 0;
+  return Math.ceil(text.length / CHARS_PER_TOKEN);
+}
+
+/**
+ * Extracts keywords and key information from document metadata.
+ * Returns a concise summary string with the most important metadata fields.
+ */
+function extractKeyMetadata(doc) {
+  const keyInfo = [];
+
+  // Add document ID (Beg Bates number)
+  keyInfo.push(`ID: ${doc.id}`);
+
+  // Add key metadata fields if they exist
+  if (doc._Subject) keyInfo.push(`Subject: ${doc._Subject}`);
+  if (doc._From) keyInfo.push(`From: ${doc._From}`);
+  if (doc._To) keyInfo.push(`To: ${doc._To}`);
+  if (doc._Date) keyInfo.push(`Date: ${doc._Date}`);
+  if (doc['File Name']) keyInfo.push(`Filename: ${doc['File Name']}`);
+  if (doc.Notes) keyInfo.push(`Notes: ${doc.Notes}`);
+
+  return keyInfo.join(' | ');
+}
+
+/**
+ * Intelligently truncates document text to fit within a token budget.
+ * Includes: metadata, start of document, and end of document.
+ */
+function truncateDocumentText(doc, text, maxTokens) {
+  // Start with metadata
+  const metadata = extractKeyMetadata(doc);
+  let result = `[${metadata}]\n\n`;
+
+  // Calculate remaining tokens for content
+  const metadataTokens = estimateTokens(result);
+  const remainingTokens = maxTokens - metadataTokens;
+
+  if (remainingTokens < MIN_TOKENS_PER_DOC) {
+    // If very limited space, just return metadata
+    return result + '[Text truncated due to size]';
+  }
+
+  // Clean the text
+  const cleanText = text.trim();
+
+  // If text is short enough, return it all
+  const totalTextTokens = estimateTokens(cleanText);
+  if (totalTextTokens <= remainingTokens) {
+    return result + cleanText;
+  }
+
+  // Otherwise, take start and end snippets
+  const halfTokens = Math.floor(remainingTokens / 2);
+  const startChars = halfTokens * CHARS_PER_TOKEN;
+  const endChars = halfTokens * CHARS_PER_TOKEN;
+
+  const startSnippet = cleanText.substring(0, startChars).trim();
+  const endSnippet = cleanText.substring(cleanText.length - endChars).trim();
+
+  result += startSnippet + '\n\n[... middle content truncated ...]\n\n' + endSnippet;
+
+  return result;
+}
 
 /**
  * Searches Firestore metadata to find relevant documents.
