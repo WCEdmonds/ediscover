@@ -71,8 +71,19 @@ export const docQuery = onCall({
 
     const context = contextParts.join('\n\n---\n\n');
     const totalContextTokens = estimateTokens(context);
+    const queryTokens = estimateTokens(query);
+    const promptTokens = totalContextTokens + queryTokens + RESERVED_TOKENS_FOR_PROMPT;
 
     console.log(`Total context: ${totalContextTokens} estimated tokens (limit: ${MAX_INPUT_TOKENS})`);
+    console.log(`Query: ${queryTokens} tokens`);
+    console.log(`Total prompt (context + query + overhead): ${promptTokens} tokens`);
+
+    // If prompt exceeds limits, reduce number of documents
+    if (promptTokens > MAX_INPUT_TOKENS) {
+      const msg = `Token estimate (${promptTokens}) exceeds limit (${MAX_INPUT_TOKENS}). Try a more specific query or fewer documents.`;
+      console.warn(msg);
+      throw new Error(msg);
+    }
 
     const apiKey = process.env.GOOGLE_GENAI_API_KEY || null;
     const prompt = `Based on the following documents, ${query}\n\nContext:\n${context}`;
@@ -159,16 +170,24 @@ export const docQuery = onCall({
           const payload = await tryUrl(url, { Authorization: `Bearer ${accessToken}` }, requestBody);
           // success
           console.info(`Generative API call succeeded using service-account auth (model: ${modelName})`);
-          const answerText = isGemini 
+          const answerText = isGemini
             ? payload.candidates?.[0]?.content?.parts?.[0]?.text
             : payload.candidates?.[0]?.output;
-          
+
           if (!answerText) {
             console.warn('Unexpected API response format:', JSON.stringify(payload));
             throw new Error('Unexpected API response format');
           }
-          
-          return { answer: answerText, sources: relevantDocs };
+
+          return {
+            answer: answerText,
+            sources: relevantDocs,
+            tokenInfo: {
+              estimatedInputTokens: promptTokens,
+              maxInputTokens: MAX_INPUT_TOKENS,
+              documentsProcessed: docsWithText.length
+            }
+          };
         } catch (e) {
           if (e.status === 404) {
             console.debug(`Generative API not found at ${url} (404), trying next model`);
@@ -195,16 +214,24 @@ export const docQuery = onCall({
           const requestBody = isGemini ? geminiBody : legacyBody;
           const payload = await tryUrl(url, {}, requestBody);
           console.info(`Generative API call succeeded using API key (model: ${modelName})`);
-          const answerText = isGemini 
+          const answerText = isGemini
             ? payload.candidates?.[0]?.content?.parts?.[0]?.text
             : payload.candidates?.[0]?.output;
-          
+
           if (!answerText) {
             console.warn('Unexpected API response format:', JSON.stringify(payload));
             throw new Error('Unexpected API response format');
           }
-          
-          return { answer: answerText, sources: relevantDocs };
+
+          return {
+            answer: answerText,
+            sources: relevantDocs,
+            tokenInfo: {
+              estimatedInputTokens: promptTokens,
+              maxInputTokens: MAX_INPUT_TOKENS,
+              documentsProcessed: docsWithText.length
+            }
+          };
         } catch (e) {
           if (e.status === 404) {
             console.debug(`Generative API not found at ${url} with API key (404), trying next model`);
