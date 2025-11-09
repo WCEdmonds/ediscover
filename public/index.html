@@ -219,39 +219,42 @@
     <!-- Firebase SDKs and App Logic -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { 
-            getAuth, 
-            signInAnonymously, 
-            onAuthStateChanged 
+        import {
+            getAuth,
+            signInAnonymously,
+            onAuthStateChanged
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { 
-            getFirestore, 
-            doc, 
-            setDoc, 
-            collection, 
+        import {
+            getFirestore,
+            doc,
+            setDoc,
+            collection,
             onSnapshot,
             query,
             setLogLevel
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { 
-            getStorage, 
-            ref, 
-            uploadBytes, 
-            getDownloadURL 
+        import {
+            getStorage,
+            ref,
+            uploadBytes,
+            getDownloadURL
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
         // *** NEW *** Import Firebase Functions
-        import { 
-            getFunctions, 
-            httpsCallable 
+        import {
+            getFunctions,
+            httpsCallable
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-functions.js";
-        
+
+        // Import Firebase configuration from external file
+        import { firebaseConfig, appId as configAppId } from './js/firebase-config.js';
+
         // --- GLOBAL STATE ---
         let db, auth, storage, functions;
         let userId, appId;
         let allDocuments = [];
         let currentDocument = null;
         let unsubscribeDocListener = null;
-        
+
         // *** NEW *** Reference to our Genkit Cloud Function
         let docQuery;
 
@@ -333,25 +336,15 @@
             })();
             function initializeAppLogic() {
                 try {
-                    // --- !!! IMPORTANT !!! ---
-                    // PASTE YOUR FIREBASE CONFIG OBJECT HERE
-                    // You get this from Project Settings > General > Your apps > Web app
-                        const firebaseConfig = {
-                          apiKey: "AIzaSyDds56xoCKTcY8NEMMLqoQQZ3hNWB0TVts",
-                          authDomain: "ediscover.firebaseapp.com",
-                          projectId: "ediscover",
-                          storageBucket: "ediscover.firebasestorage.app",
-                          messagingSenderId: "634524579649",
-                          appId: "1:634524579649:web:6996d2f02aab10b49213c0",
-                          measurementId: "G-TY6NMLVQ88"
-                        };
+                    // Firebase config is now imported from ./js/firebase-config.js
+                    // If you need to update the configuration, edit that file
                     
                     // Use a hardcoded, unique ID for your app's data
-                    appId = 'eDiscovery-App'; 
+                    appId = configAppId; 
 
                     // Check if config is still the placeholder
-                    if (firebaseConfig.apiKey === "AIzaSy...") {
-                         throw new Error("Please paste your Firebase config object into the script (line 130).");
+                    if (firebaseConfig.apiKey === "YOUR_API_KEY_HERE") {
+                         throw new Error("Please copy firebase-config.template.js to firebase-config.js and add your Firebase configuration.");
                     }
 
                     // Init Firebase
