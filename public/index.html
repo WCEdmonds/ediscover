@@ -941,19 +941,68 @@
                 });
             }
 
-            // Handle Document List Searching
+            // Helper function to generate a brief summary of a document based on metadata
+            function generateDocumentSummary(doc) {
+                // Priority: determine document type and create appropriate summary
+
+                // Email detection
+                if (doc._From || doc._To) {
+                    const from = doc._From || 'Unknown';
+                    const to = doc._To || 'Unknown';
+                    const subject = doc._Subject ? ` - ${doc._Subject}` : '';
+                    return `Email from ${from} to ${to}${subject}`;
+                }
+
+                // Document with subject
+                if (doc._Subject) {
+                    const date = doc._Date ? ` (${doc._Date})` : '';
+                    return `${doc._Subject}${date}`;
+                }
+
+                // Document with filename
+                if (doc['File Name']) {
+                    const date = doc._Date ? ` (${doc._Date})` : '';
+                    return `${doc['File Name']}${date}`;
+                }
+
+                // Notes as fallback
+                if (doc.Notes) {
+                    return doc.Notes.substring(0, 50) + (doc.Notes.length > 50 ? '...' : '');
+                }
+
+                // Default: just the document ID
+                return doc.id;
+            }
+
+            // Handle Document List Searching - searches across ID, metadata, and text content
             docSearchEl.addEventListener('input', (e) => {
                 const searchTerm = e.target.value.toLowerCase();
                 if (!searchTerm) {
                     renderDocumentList(allDocuments);
                     return;
                 }
-                const filteredDocs = allDocuments.filter(doc => 
-                    doc.id.toLowerCase().includes(searchTerm)
-                );
+
+                // Search across multiple fields
+                const filteredDocs = allDocuments.filter(doc => {
+                    // Search in document ID (Beg Bates)
+                    if (doc.id.toLowerCase().includes(searchTerm)) return true;
+
+                    // Search in key metadata fields
+                    const fieldsToSearch = ['_Subject', '_From', '_To', '_CC', 'File Name', 'Notes', '_Date'];
+                    for (const field of fieldsToSearch) {
+                        if (doc[field] && doc[field].toString().toLowerCase().includes(searchTerm)) {
+                            return true;
+                        }
+                    }
+
+                    // Note: Text content search is handled on the backend for AI queries
+                    // Frontend search focuses on metadata for better performance
+                    return false;
+                });
+
                 renderDocumentList(filteredDocs);
             });
-            
+
             // Render the list of documents on the left
             function renderDocumentList(docs) {
                 docListEl.innerHTML = ''; 
@@ -968,10 +1017,22 @@
                     const fragment = document.createDocumentFragment();
                     for (const doc of docs) {
                         const docItem = document.createElement('div');
-                        docItem.className = 'doc-item p-3.5 border-b border-slate-700/50 cursor-pointer transition-all duration-200 truncate text-slate-200 font-medium';
-                        docItem.textContent = doc.id;
+                        docItem.className = 'doc-item p-3.5 border-b border-slate-700/50 cursor-pointer transition-all duration-200 text-slate-200';
                         docItem.dataset.docId = doc.id;
-                        
+
+                        // Create document ID element (Beg Bates)
+                        const docId = document.createElement('div');
+                        docId.className = 'font-semibold text-sm truncate';
+                        docId.textContent = doc.id;
+
+                        // Create document summary element
+                        const docSummary = document.createElement('div');
+                        docSummary.className = 'text-xs text-slate-400 truncate mt-1';
+                        docSummary.textContent = generateDocumentSummary(doc);
+
+                        docItem.appendChild(docId);
+                        docItem.appendChild(docSummary);
+
                         if (currentDocument && currentDocument.id === doc.id) {
                             docItem.classList.add('selected');
                         }
