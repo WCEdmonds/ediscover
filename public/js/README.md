@@ -1,38 +1,34 @@
 # Firebase Configuration
 
-## Setup Instructions
+## About Firebase API Keys
 
-### First Time Setup
+The `firebase-config.js` file contains your Firebase project configuration, including the client API key.
 
-1. Copy the template file to create your configuration:
-   ```bash
-   cp firebase-config.template.js firebase-config.js
-   ```
+### Important: Firebase Client API Keys Are Public
 
-2. Edit `firebase-config.js` and replace the placeholder values with your actual Firebase project configuration.
+**Firebase client API keys are NOT secret** and are designed to be included in your frontend code. They are fundamentally different from server-side API keys:
 
-3. Get your Firebase configuration from:
-   - Go to [Firebase Console](https://console.firebase.google.com/)
-   - Select your project
-   - Go to Project Settings > General
-   - Scroll down to "Your apps" section
-   - Click on the web app or create a new one
-   - Copy the configuration object
+- ✅ Safe to commit to public repositories
+- ✅ Safe to include in frontend bundles
+- ✅ Visible in network requests (by design)
+- ✅ Protected by Firebase Security Rules (the real security layer)
 
 ### Security Notes
 
-- `firebase-config.js` is gitignored to prevent accidental commits of API keys
-- `firebase-config.template.js` is the template with placeholder values (safe to commit)
-- Firebase client API keys are meant to be used in frontend code
-- Real security is enforced through Firebase Security Rules, not by hiding the API key
-- Make sure your Firestore Security Rules and Storage Rules are properly configured
+Real security for Firebase applications comes from:
+1. **Firestore Security Rules** - Control database access
+2. **Storage Security Rules** - Control file access
+3. **Firebase Authentication** - Verify user identity
+4. **API restrictions** (optional) - Restrict which domains can use the API key
 
-### Important
+The client API key simply identifies which Firebase project to connect to.
 
-The API key in `firebase-config.js` is a **client-side Firebase API key**, which is different from server-side API keys. Firebase client keys:
-- Are meant to be used in frontend applications
-- Are not secret (they appear in network requests)
-- Are protected by Firebase Security Rules
-- Should still be kept out of public repositories as a best practice
+### Configuration Files
 
-For more information, see: https://firebase.google.com/docs/projects/api-keys
+- `firebase-config.js` - Your actual Firebase configuration (included in deployments)
+- `firebase-config.template.js` - Template for creating new configurations
+
+### Learn More
+
+- [Firebase API Key Security](https://firebase.google.com/docs/projects/api-keys)
+- [Firebase Security Rules](https://firebase.google.com/docs/rules)
