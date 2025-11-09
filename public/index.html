@@ -242,7 +242,10 @@
             </div>
         </div>
         <div class="flex items-center gap-6">
-            <small id="version-display" class="text-slate-400 font-medium">v<span id="version-number">-</span></small>
+            <small id="version-display" class="text-slate-400 font-medium cursor-pointer hover:text-slate-200 transition-colors" title="Click for admin unlock">v<span id="version-number">-</span></small>
+            <div id="usage-display" class="hidden text-xs text-slate-400 font-medium px-3 py-1.5 bg-slate-700/50 rounded-lg">
+                <span id="usage-text">-</span>
+            </div>
             <div id="auth-status" class="text-sm text-slate-300 font-medium px-3 py-1 bg-slate-700/50 rounded-lg">initializing...</div>
             <button id="signout-btn" class="hidden text-sm text-slate-300 hover:text-white font-medium px-4 py-2 bg-slate-700/50 hover:bg-slate-700 rounded-lg transition-colors">
                 Sign Out
@@ -542,7 +545,33 @@
             </div>
         </div>
     </div>
-    
+
+    <!-- Admin Unlock Modal -->
+    <div id="admin-unlock-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-slate-800 rounded-lg shadow-xl p-6 max-w-md w-full border border-slate-700">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-700 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white">Unlock Admin Mode</h3>
+            </div>
+            <p class="text-slate-300 mb-4">Enter the admin unlock code to get unlimited AI queries.</p>
+            <input type="password" id="admin-unlock-code" placeholder="Enter unlock code" class="w-full bg-slate-700/70 text-white rounded-lg px-4 py-3 mb-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
+            <div id="admin-unlock-error" class="text-red-400 text-sm mb-3 hidden"></div>
+            <div id="admin-unlock-success" class="text-green-400 text-sm mb-3 hidden"></div>
+            <div class="flex gap-3">
+                <button id="admin-unlock-btn" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg focus:outline-none transition-colors">
+                    Unlock
+                </button>
+                <button id="admin-unlock-cancel" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-6 rounded-lg focus:outline-none transition-colors">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Placeholder -->
     <!-- The modal will be added here by JavaScript -->
 
@@ -587,8 +616,9 @@
         let currentDocument = null;
         let unsubscribeDocListener = null;
 
-        // *** NEW *** Reference to our Genkit Cloud Function
+        // Cloud Function references
         let docQuery;
+        let unlockAdminMode;
 
         // --- Wait for DOM to load before running app logic ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -651,6 +681,19 @@
             const aiResponseContentEl = document.getElementById('ai-response-content');
             const aiSourcesEl = document.getElementById('ai-sources');
             const aiTokenInfoEl = document.getElementById('ai-token-info');
+
+            // Usage display elements
+            const versionDisplay = document.getElementById('version-display');
+            const usageDisplay = document.getElementById('usage-display');
+            const usageText = document.getElementById('usage-text');
+
+            // Admin unlock modal elements
+            const adminUnlockModal = document.getElementById('admin-unlock-modal');
+            const adminUnlockCode = document.getElementById('admin-unlock-code');
+            const adminUnlockBtn = document.getElementById('admin-unlock-btn');
+            const adminUnlockCancel = document.getElementById('admin-unlock-cancel');
+            const adminUnlockError = document.getElementById('admin-unlock-error');
+            const adminUnlockSuccess = document.getElementById('admin-unlock-success');
 
             // Remove any existing queryGemini function to prevent direct API calls
             if (window.queryGemini) {
@@ -750,6 +793,80 @@
                 }
             });
 
+            // --- ADMIN UNLOCK HANDLERS ---
+            // Show unlock modal when version number is clicked
+            versionDisplay.addEventListener('click', () => {
+                if (!userId) {
+                    alert('Please sign in first');
+                    return;
+                }
+                adminUnlockModal.classList.remove('hidden');
+                adminUnlockCode.value = '';
+                adminUnlockError.classList.add('hidden');
+                adminUnlockSuccess.classList.add('hidden');
+                adminUnlockCode.focus();
+            });
+
+            // Handle unlock button
+            adminUnlockBtn.addEventListener('click', async () => {
+                const code = adminUnlockCode.value.trim();
+
+                if (!code) {
+                    adminUnlockError.textContent = 'Please enter an unlock code';
+                    adminUnlockError.classList.remove('hidden');
+                    return;
+                }
+
+                try {
+                    adminUnlockBtn.disabled = true;
+                    adminUnlockBtn.textContent = 'Unlocking...';
+                    adminUnlockError.classList.add('hidden');
+
+                    const result = await unlockAdminMode({ code });
+
+                    if (result.data.success) {
+                        adminUnlockSuccess.textContent = '✓ Admin mode unlocked! You now have unlimited AI queries.';
+                        adminUnlockSuccess.classList.remove('hidden');
+                        adminUnlockCode.value = '';
+
+                        // Update usage display
+                        usageText.textContent = 'Unlimited queries (Admin)';
+                        usageText.className = 'text-green-400 font-semibold';
+
+                        setTimeout(() => {
+                            adminUnlockModal.classList.add('hidden');
+                        }, 2000);
+                    } else {
+                        adminUnlockError.textContent = result.data.error || 'Invalid unlock code';
+                        adminUnlockError.classList.remove('hidden');
+                    }
+                } catch (error) {
+                    console.error('Unlock error:', error);
+                    adminUnlockError.textContent = error.message || 'An error occurred';
+                    adminUnlockError.classList.remove('hidden');
+                } finally {
+                    adminUnlockBtn.disabled = false;
+                    adminUnlockBtn.textContent = 'Unlock';
+                }
+            });
+
+            // Handle Enter key in unlock code input
+            adminUnlockCode.addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') adminUnlockBtn.click();
+            });
+
+            // Handle cancel button
+            adminUnlockCancel.addEventListener('click', () => {
+                adminUnlockModal.classList.add('hidden');
+            });
+
+            // Close modal when clicking outside
+            adminUnlockModal.addEventListener('click', (e) => {
+                if (e.target === adminUnlockModal) {
+                    adminUnlockModal.classList.add('hidden');
+                }
+            });
+
             // --- 1. INITIALIZATION ---
             // Load version number (robust: handle 404 or HTML error pages)
             (async () => {
@@ -796,11 +913,12 @@
                     auth = getAuth(app);
                     storage = getStorage(app);
                     
-                    // Initialize Firebase Functions and create callable reference
+                    // Initialize Firebase Functions and create callable references
                     functions = getFunctions(app);
                     functions.region = 'us-central1'; // Explicitly set region
                     docQuery = httpsCallable(functions, 'docQuery');
-                    
+                    unlockAdminMode = httpsCallable(functions, 'unlockAdminMode');
+
                     console.log('Firebase initialization complete');
 
                     // Enable debug logging for Firestore
@@ -1483,7 +1601,7 @@
                     }
                     
                     console.log('Cloud Function response:', result);
-                    const { answer, sources, tokenInfo } = result.data;
+                    const { answer, sources, tokenInfo, usageInfo } = result.data;
 
                     if (!answer) {
                         throw new Error('No answer received from AI');
@@ -1524,6 +1642,25 @@
 
                         aiTokenInfoEl.innerHTML = tokenInfoText;
                         aiTokenInfoEl.classList.remove('hidden');
+                    }
+
+                    // Update usage display
+                    if (usageInfo) {
+                        usageDisplay.classList.remove('hidden');
+                        if (usageInfo.isAdmin) {
+                            usageText.textContent = 'Unlimited queries (Admin)';
+                            usageText.className = 'text-green-400 font-semibold';
+                        } else {
+                            usageText.textContent = `${usageInfo.queriesRemaining} queries remaining this month`;
+                            // Color code based on remaining queries
+                            if (usageInfo.queriesRemaining <= 10) {
+                                usageText.className = 'text-red-400 font-semibold';
+                            } else if (usageInfo.queriesRemaining <= 25) {
+                                usageText.className = 'text-yellow-400';
+                            } else {
+                                usageText.className = 'text-slate-400';
+                            }
+                        }
                     }
 
                 } catch (error) {

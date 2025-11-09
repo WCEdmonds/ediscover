@@ -40,6 +40,16 @@ export const docQuery = onCall({
   }
 
   try {
+    // Check and update query usage limits
+    const usageInfo = await checkAndUpdateQueryUsage(userId);
+
+    if (!usageInfo.allowed) {
+      throw new HttpsError(
+        'resource-exhausted',
+        `You have reached your monthly limit of ${usageInfo.maxQueries} AI queries. Your limit will reset on ${usageInfo.resetDate}.`
+      );
+    }
+
     // Find relevant documents first
     const relevantDocs = await findRelevantDocsByMetadata(query, userId);
     
@@ -191,6 +201,11 @@ export const docQuery = onCall({
                   maxInputTokens: MAX_INPUT_TOKENS,
                   documentsProcessed: docsWithText.length,
                   warning: 'Response was truncated due to length'
+                },
+                usageInfo: {
+                  queriesUsed: usageInfo.queriesUsed,
+                  queriesRemaining: usageInfo.queriesRemaining,
+                  isAdmin: usageInfo.isAdmin
                 }
               };
             } else {
@@ -210,6 +225,11 @@ export const docQuery = onCall({
               estimatedInputTokens: promptTokens,
               maxInputTokens: MAX_INPUT_TOKENS,
               documentsProcessed: docsWithText.length
+            },
+            usageInfo: {
+              queriesUsed: usageInfo.queriesUsed,
+              queriesRemaining: usageInfo.queriesRemaining,
+              isAdmin: usageInfo.isAdmin
             }
           };
         } catch (e) {
@@ -259,6 +279,11 @@ export const docQuery = onCall({
                   maxInputTokens: MAX_INPUT_TOKENS,
                   documentsProcessed: docsWithText.length,
                   warning: 'Response was truncated due to length'
+                },
+                usageInfo: {
+                  queriesUsed: usageInfo.queriesUsed,
+                  queriesRemaining: usageInfo.queriesRemaining,
+                  isAdmin: usageInfo.isAdmin
                 }
               };
             } else {
@@ -278,6 +303,11 @@ export const docQuery = onCall({
               estimatedInputTokens: promptTokens,
               maxInputTokens: MAX_INPUT_TOKENS,
               documentsProcessed: docsWithText.length
+            },
+            usageInfo: {
+              queriesUsed: usageInfo.queriesUsed,
+              queriesRemaining: usageInfo.queriesRemaining,
+              isAdmin: usageInfo.isAdmin
             }
           };
         } catch (e) {
@@ -330,6 +360,111 @@ const RESERVED_TOKENS_FOR_PROMPT = 500; // Reserve tokens for query and instruct
 const MIN_TOKENS_PER_DOC = 100; // Minimum tokens to include per document
 const SNIPPET_START_CHARS = 500; // Characters to include from start of document
 const SNIPPET_END_CHARS = 300; // Characters to include from end of document
+
+// Usage limits configuration
+const MAX_FREE_QUERIES_PER_MONTH = 100;
+const ADMIN_UNLOCK_CODE = 'scientiaestpotestas'; // Latin: "knowledge is power"
+
+/**
+ * Checks if user has exceeded their monthly query limit and updates usage.
+ * Returns usage information including whether the query is allowed.
+ */
+async function checkAndUpdateQueryUsage(userId) {
+  const userRef = db.collection('users').doc(userId);
+
+  try {
+    const result = await db.runTransaction(async (transaction) => {
+      const userDoc = await transaction.get(userRef);
+      const userData = userDoc.exists ? userDoc.data() : {};
+
+      const now = new Date();
+      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+      // Check if user is admin (unlimited queries)
+      const isAdmin = userData.isAdmin === true;
+
+      // Initialize or reset monthly usage
+      let queriesThisMonth = 0;
+      let lastQueryMonth = userData.lastQueryMonth || '';
+
+      if (lastQueryMonth !== currentMonth) {
+        // New month - reset counter
+        queriesThisMonth = 0;
+      } else {
+        queriesThisMonth = userData.queriesThisMonth || 0;
+      }
+
+      // Check if user has exceeded limit (unless admin)
+      const allowed = isAdmin || queriesThisMonth < MAX_FREE_QUERIES_PER_MONTH;
+
+      // Increment query count if allowed
+      if (allowed) {
+        queriesThisMonth += 1;
+
+        transaction.set(userRef, {
+          queriesThisMonth,
+          lastQueryMonth: currentMonth,
+          lastQueryAt: now,
+          isAdmin: isAdmin || false
+        }, { merge: true });
+      }
+
+      // Calculate reset date (first day of next month)
+      const resetDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      const resetDateStr = resetDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+      return {
+        allowed,
+        queriesUsed: queriesThisMonth,
+        queriesRemaining: isAdmin ? 'Unlimited' : Math.max(0, MAX_FREE_QUERIES_PER_MONTH - queriesThisMonth),
+        maxQueries: MAX_FREE_QUERIES_PER_MONTH,
+        isAdmin,
+        resetDate: resetDateStr
+      };
+    });
+
+    return result;
+  } catch (error) {
+    console.error('Error checking query usage:', error);
+    // On error, allow the query but log the issue
+    return {
+      allowed: true,
+      queriesUsed: 0,
+      queriesRemaining: MAX_FREE_QUERIES_PER_MONTH,
+      maxQueries: MAX_FREE_QUERIES_PER_MONTH,
+      isAdmin: false,
+      resetDate: 'Unknown'
+    };
+  }
+}
+
+/**
+ * Validates admin unlock code and grants unlimited access.
+ */
+export const unlockAdminMode = onCall(async (request) => {
+  const { code } = request.data || {};
+  const userId = request.auth?.uid;
+
+  if (!userId) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  if (!code) {
+    throw new HttpsError('invalid-argument', 'Unlock code is required');
+  }
+
+  if (code === ADMIN_UNLOCK_CODE) {
+    // Grant admin access
+    await db.collection('users').doc(userId).set({
+      isAdmin: true,
+      adminUnlockedAt: new Date()
+    }, { merge: true });
+
+    return { success: true, isAdmin: true };
+  } else {
+    return { success: false, isAdmin: false, error: 'Invalid unlock code' };
+  }
+});
 
 /**
  * Estimates the number of tokens in a text string.
