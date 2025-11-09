@@ -3,42 +3,121 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Firebase Document Reviewer</title>
+    <title>eDiscover - AI Document Review</title>
     <!-- Using Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        /* Simple scrollbar styling */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #1a202c; }
-        ::-webkit-scrollbar-thumb { background: #4a5568; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #718096; }
-        
+        * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        /* Smooth scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+            border-radius: 5px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #475569 0%, #334155 100%);
+            border-radius: 5px;
+            border: 2px solid #0f172a;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, #64748b 0%, #475569 100%);
+        }
+
+        /* Gradient background */
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+        }
+
         /* Style for the selected document */
-        .doc-item.selected { background-color: #4a5568; }
-        
-        /* Tab styling */
-        .tab-btn { background-color: #2d3748; }
-        .tab-btn.active { background-color: #4a5568; }
+        .doc-item {
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+        .doc-item:hover {
+            background-color: #334155 !important;
+            border-left-color: #3b82f6;
+            transform: translateX(2px);
+        }
+        .doc-item.selected {
+            background: linear-gradient(90deg, #1e3a8a 0%, #1e40af 100%) !important;
+            border-left-color: #60a5fa;
+            font-weight: 600;
+        }
+
+        /* Tab styling with modern look */
+        .tab-btn {
+            background-color: transparent;
+            position: relative;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+        .tab-btn:hover {
+            background-color: #1e293b;
+        }
+        .tab-btn.active {
+            background: linear-gradient(180deg, #1e3a8a 0%, #1e40af 100%);
+            border-bottom-color: #3b82f6;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Modern button styling */
+        .btn-primary {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.4);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+            box-shadow: 0 6px 8px -1px rgba(37, 99, 235, 0.6);
+            transform: translateY(-1px);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4);
+            transition: all 0.3s ease;
+        }
+        .btn-success:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            box-shadow: 0 6px 8px -1px rgba(16, 185, 129, 0.6);
+            transform: translateY(-1px);
+        }
 
         /* Custom file input button styling */
         .file-input-btn {
             display: inline-block;
-            background: #2b6cb0;
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
             color: white;
-            padding: 8px 16px;
+            padding: 10px 20px;
             border-radius: 0.5rem;
             cursor: pointer;
-            font-weight: bold;
-            transition: background-color 0.15s ease-in-out;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.4);
         }
         .file-input-btn:hover {
-            background: #2c5282;
+            background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+            box-shadow: 0 6px 8px -1px rgba(37, 99, 235, 0.6);
+            transform: translateY(-1px);
         }
         .file-input-btn-label {
             display: inline-block;
             margin-left: 12px;
-            font-style: italic;
-            color: #a0aec0; /* text-gray-400 */
+            color: #94a3b8;
+            font-weight: 500;
         }
 
         /* Hide the actual file input */
@@ -51,97 +130,195 @@
             z-index: -1;
         }
 
+        /* Enhanced input fields */
+        input[type="text"], input[type="search"] {
+            transition: all 0.3s ease;
+        }
+        input[type="text"]:focus, input[type="search"]:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+
         /* AI Panel styles */
         .ai-response {
             white-space: pre-wrap;
             word-wrap: break-word;
             font-family: 'Inter', sans-serif;
-            line-height: 1.6;
+            line-height: 1.8;
+            font-size: 15px;
+            color: #e2e8f0;
         }
-        /* Simple loading spinner */
+
+        /* Modern loading spinner */
         .spinner {
-            border: 4px solid #4a5568; /* gray-600 */
-            border-top: 4px solid #3b82f6; /* blue-500 */
+            border: 4px solid rgba(59, 130, 246, 0.2);
+            border-top: 4px solid #3b82f6;
             border-radius: 50%;
-            width: 32px;
-            height: 32px;
-            animation: spin 1s linear infinite;
+            width: 40px;
+            height: 40px;
+            animation: spin 0.8s linear infinite;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        /* Enhanced source links */
         .ai-source-link {
             display: inline-block;
-            background-color: #374151; /* gray-700 */
-            color: #d1d5db; /* gray-300 */
-            padding: 2px 8px;
-            border-radius: 0.25rem;
-            margin: 2px;
+            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+            color: #e0e7ff;
+            padding: 6px 12px;
+            border-radius: 0.375rem;
+            margin: 4px;
             font-size: 0.875rem;
+            font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.15s ease;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(96, 165, 250, 0.3);
         }
         .ai-source-link:hover {
-            background-color: #4b5563; /* gray-600 */
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(37, 99, 235, 0.5);
+        }
+
+        /* Card styling */
+        .card {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Header gradient */
+        header {
+            background: linear-gradient(90deg, #1e293b 0%, #334155 50%, #1e293b 100%);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Panel backgrounds */
+        .panel-bg {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
+            border-radius: 0.75rem;
         }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200 font-sans h-full flex flex-col antialiased">
 
     <!-- Header -->
-    <header class="bg-gray-800 shadow-md p-3 flex justify-between items-center z-10">
-        <h1 class="text-xl font-bold text-white">Document Review Platform</h1>
-        <small id="version-display">Version: <span id="version-number">-</span></small>
-        <div id="auth-status" class="text-sm text-gray-400">initializing...</div>
+    <header class="shadow-lg p-4 flex justify-between items-center z-10">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg flex items-center justify-center shadow-lg">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold text-white tracking-tight">eDiscover</h1>
+                <p class="text-xs text-slate-400 font-medium">AI-Powered Document Review</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-6">
+            <small id="version-display" class="text-slate-400 font-medium">v<span id="version-number">-</span></small>
+            <div id="auth-status" class="text-sm text-slate-300 font-medium px-3 py-1 bg-slate-700/50 rounded-lg">initializing...</div>
+        </div>
     </header>
 
     <!-- Main Content Area -->
     <div id="main-content" class="flex-1 flex flex-col hidden overflow-hidden">
         
         <!-- Main Tabs -->
-        <div id="main-tabs" class="flex border-b border-gray-700 bg-gray-800">
-            <button id="tab-review" data-target="review-view" class="tab-btn active text-white font-semibold py-3 px-6 rounded-t-lg focus:outline-none">Review</button>
-            <button id="tab-ingest" data-target="ingest-view" class="tab-btn text-white font-semibold py-3 px-6 rounded-t-lg focus:outline-none">Ingest</button>
+        <div id="main-tabs" class="flex border-b border-slate-700 bg-slate-800/50 backdrop-blur-sm">
+            <button id="tab-review" data-target="review-view" class="tab-btn active text-white font-semibold py-4 px-8 focus:outline-none flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+                Review
+            </button>
+            <button id="tab-ingest" data-target="ingest-view" class="tab-btn text-white font-semibold py-4 px-8 focus:outline-none flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                </svg>
+                Ingest
+            </button>
         </div>
 
         <!-- Views Container -->
         <div id="main-views" class="flex-1 flex overflow-hidden">
             
             <!-- Ingest View -->
-            <div id="ingest-view" class="tab-panel hidden p-8 bg-gray-800 w-full overflow-y-auto">
-                <div class="max-w-2xl mx-auto">
-                    <h2 class="text-2xl font-semibold mb-6 text-white">Ingest New Data</h2>
+            <div id="ingest-view" class="tab-panel hidden p-8 w-full overflow-y-auto">
+                <div class="max-w-3xl mx-auto">
+                    <div class="mb-8">
+                        <h2 class="text-3xl font-bold mb-2 text-white">Ingest New Data</h2>
+                        <p class="text-slate-400">Upload your document collection for AI-powered analysis</p>
+                    </div>
                     <div class="space-y-6">
                         <!-- .dat File Input -->
-                        <div>
-                            <label for="dat-file-input" class="file-input-btn">Select .dat File</label>
-                            <span id="dat-file-label" class="file-input-btn-label">No file selected...</span>
-                            <input type="file" id="dat-file-input" class="hidden-file-input" accept=".dat">
-                            <p class="text-sm text-gray-400 mt-2">Select the main .dat load file.</p>
+                        <div class="card p-6">
+                            <div class="flex items-start gap-4">
+                                <div class="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="text-lg font-semibold text-white mb-2">Load File</h3>
+                                    <label for="dat-file-input" class="file-input-btn">Choose .dat File</label>
+                                    <span id="dat-file-label" class="file-input-btn-label">No file selected</span>
+                                    <input type="file" id="dat-file-input" class="hidden-file-input" accept=".dat">
+                                    <p class="text-sm text-slate-400 mt-3">Select the main .dat load file containing document metadata</p>
+                                </div>
+                            </div>
                         </div>
-                        
+
                         <!-- NATIVE Folder Input -->
-                        <div>
-                            <label for="native-folder-input" class="file-input-btn">Select NATIVE Folder</label>
-                            <span id="native-folder-label" class="file-input-btn-label">No folder selected...</span>
-                            <input type="file" id="native-folder-input" class="hidden-file-input" webkitdirectory directory>
-                            <p class="text-sm text-gray-400 mt-2">Select the folder containing all native files (e.g., .../NATIVE/)</p>
+                        <div class="card p-6">
+                            <div class="flex items-start gap-4">
+                                <div class="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="text-lg font-semibold text-white mb-2">Native Files</h3>
+                                    <label for="native-folder-input" class="file-input-btn">Choose NATIVE Folder</label>
+                                    <span id="native-folder-label" class="file-input-btn-label">No folder selected</span>
+                                    <input type="file" id="native-folder-input" class="hidden-file-input" webkitdirectory directory>
+                                    <p class="text-sm text-slate-400 mt-3">Select the folder containing original native files (PDFs, emails, etc.)</p>
+                                </div>
+                            </div>
                         </div>
-                        
+
                         <!-- TEXT Folder Input -->
-                        <div>
-                            <label for="text-folder-input" class="file-input-btn">Select TEXT Folder</label>
-                            <span id="text-folder-label" class="file-input-btn-label">No folder selected...</span>
-                            <input type="file" id="text-folder-input" class="hidden-file-input" webkitdirectory directory>
-                            <p class="text-sm text-gray-400 mt-2">Select the folder containing all OCR/extracted text files (e.g., .../TEXT/)</p>
+                        <div class="card p-6">
+                            <div class="flex items-start gap-4">
+                                <div class="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="text-lg font-semibold text-white mb-2">Text Files</h3>
+                                    <label for="text-folder-input" class="file-input-btn">Choose TEXT Folder</label>
+                                    <span id="text-folder-label" class="file-input-btn-label">No folder selected</span>
+                                    <input type="file" id="text-folder-input" class="hidden-file-input" webkitdirectory directory>
+                                    <p class="text-sm text-slate-400 mt-3">Select the folder containing OCR/extracted text files for AI processing</p>
+                                </div>
+                            </div>
                         </div>
-                        
+
                         <!-- Ingest Button -->
-                        <div class="pt-4">
-                            <button id="ingest-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg text-lg focus:outline-none transition duration-150 disabled:opacity-50"
-                            >Start Ingestion</button>
-                            <p id="ingest-progress" class="text-gray-300 mt-4 h-6"></p>
+                        <div class="pt-6">
+                            <button id="ingest-btn" class="btn-success text-white font-bold py-4 px-8 rounded-lg text-lg focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                Start Ingestion
+                            </button>
+                            <p id="ingest-progress" class="text-slate-300 mt-4 font-medium h-6"></p>
                         </div>
                     </div>
                 </div>
@@ -150,61 +327,122 @@
             <!-- Review View -->
             <div id="review-view" class="tab-panel flex-1 flex flex-row overflow-hidden">
                 <!-- Document List (Left Panel) -->
-                <div class="w-1/4 flex flex-col bg-gray-800 border-r border-gray-700">
-                    <div class="p-3 border-b border-gray-700">
-                        <input type="search" id="doc-search" placeholder="Search by Doc ID..." class="w-full bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <div id="doc-count" class="text-center text-xs text-gray-400 pt-2">Loading...</div>
+                <div class="w-1/4 flex flex-col bg-slate-800/50 border-r border-slate-700/50 backdrop-blur-sm">
+                    <div class="p-4 border-b border-slate-700/50">
+                        <div class="relative">
+                            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                            <input type="search" id="doc-search" placeholder="Search documents..." class="w-full bg-slate-700/70 text-white rounded-lg pl-10 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
+                        </div>
+                        <div id="doc-count" class="text-center text-xs text-slate-400 pt-3 font-semibold">Loading...</div>
                     </div>
                     <div id="doc-list" class="flex-1 overflow-y-auto">
                         <!-- Doc items will be injected here -->
                     </div>
-                    <div id="doc-list-placeholder" class="flex-1 flex items-center justify-center text-gray-500 p-4 text-center">
-                        Initializing...
+                    <div id="doc-list-placeholder" class="flex-1 flex flex-col items-center justify-center text-slate-500 p-6 text-center">
+                        <svg class="w-16 h-16 mb-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <p class="font-medium">Initializing...</p>
                     </div>
                 </div>
 
                 <!-- Viewer (Right Panel) -->
-                <div class="w-3/4 flex flex-col bg-gray-900 overflow-hidden">
+                <div class="w-3/4 flex flex-col overflow-hidden">
                     <!-- Viewer Tabs -->
-                    <div id="viewer-tabs" class="flex border-b border-gray-700 bg-gray-800">
-                        <button id="tab-ai" data-target="panel-ai" class="tab-btn active text-white font-semibold py-3 px-6 rounded-t-lg focus:outline-none">AI Assistant</button>
-                        <button id="tab-text" data-target="panel-text" class="tab-btn text-white font-semibold py-3 px-6 rounded-t-lg focus:outline-none">Text</button>
-                        <button id="tab-native" data-target="panel-native" class="tab-btn text-white font-semibold py-3 px-6 rounded-t-lg focus:outline-none">Native</button>
-                        <button id="tab-metadata" data-target="panel-metadata" class="tab-btn text-white font-semibold py-3 px-6 rounded-t-lg focus:outline-none">Metadata</button>
+                    <div id="viewer-tabs" class="flex border-b border-slate-700/50 bg-slate-800/30 backdrop-blur-sm">
+                        <button id="tab-ai" data-target="panel-ai" class="tab-btn active text-white font-semibold py-3 px-6 focus:outline-none flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                            </svg>
+                            AI Assistant
+                        </button>
+                        <button id="tab-text" data-target="panel-text" class="tab-btn text-white font-semibold py-3 px-6 focus:outline-none flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            Text
+                        </button>
+                        <button id="tab-native" data-target="panel-native" class="tab-btn text-white font-semibold py-3 px-6 focus:outline-none flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                            </svg>
+                            Native
+                        </button>
+                        <button id="tab-metadata" data-target="panel-metadata" class="tab-btn text-white font-semibold py-3 px-6 focus:outline-none flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Metadata
+                        </button>
                     </div>
                     
                     <!-- Viewer Panels -->
                     <div id="viewer-panels" class="flex-1 relative overflow-hidden">
                          <!-- AI Assistant Panel -->
-                        <div id="panel-ai" class="tab-panel w-full h-full flex flex-col p-4 overflow-hidden">
-                            <div class="flex-shrink-0 mb-4">
-                                <p class="text-sm text-gray-400 mb-3">Ask a question about your ingested documents:</p>
-                                <div class="flex">
-                                    <input type="text" id="ai-query-input" placeholder="e.g., 'Summarize documents from Danny Lee about Symbio'" class="flex-1 bg-gray-700 text-white rounded-l-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                    <button id="ai-query-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-r-lg focus:outline-none">Send</button>
-                                </div>
-                            </div>
-                            <div class="flex-1 overflow-y-auto bg-gray-800 rounded-lg p-4">
+                        <div id="panel-ai" class="tab-panel w-full h-full flex flex-col p-6 overflow-hidden">
+                            <div class="flex-1 overflow-y-auto panel-bg p-6 mb-4">
                                 <div id="ai-loading" class="hidden flex-col items-center justify-center h-full">
                                     <div class="spinner"></div>
-                                    <p class="text-gray-400 mt-3">Searching database and reading text...</p>
+                                    <p class="text-slate-400 mt-4 font-medium">Searching database and reading documents...</p>
                                 </div>
-                                <div id="ai-response-content" class="ai-response text-gray-300">
-                                    Ask a question about your entire document set. The AI will search document metadata to find relevant files, read their text, and generate a (much more accurate) answer.
+                                <div id="ai-response-content" class="ai-response">
+                                    <div class="flex items-start gap-4 mb-4">
+                                        <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg flex items-center justify-center flex-shrink-0">
+                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h3 class="text-lg font-semibold text-white mb-2">AI Document Assistant</h3>
+                                            <p class="text-slate-300 leading-relaxed">Ask questions about your entire document collection. I'll search the metadata to find relevant files, analyze their content, and provide comprehensive answers with source citations.</p>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div id="ai-sources" class="mt-4 pt-4 border-t border-gray-700">
+                                <div id="ai-sources" class="mt-6 pt-6 border-t border-slate-700/50">
                                     <!-- AI sources will be injected here -->
                                 </div>
                             </div>
+                            <div class="flex-shrink-0">
+                                <div class="relative">
+                                    <input type="text" id="ai-query-input" placeholder="Ask about your documents..." class="w-full bg-slate-700/70 text-white rounded-lg pl-4 pr-24 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-base">
+                                    <button id="ai-query-btn" class="btn-primary absolute right-2 top-1/2 transform -translate-y-1/2 text-white font-semibold py-2 px-6 rounded-lg focus:outline-none flex items-center gap-2">
+                                        <span>Send</span>
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <p class="text-xs text-slate-400 mt-2 ml-1">Example: "Summarize documents from Danny Lee about Symbio"</p>
+                            </div>
                         </div>
-                        <div id="panel-text" class="tab-panel hidden w-full h-full overflow-y-auto p-4 whitespace-pre-wrap break-words">
-                            Select a document to view its text.
+                        <div id="panel-text" class="tab-panel hidden w-full h-full overflow-y-auto p-6 whitespace-pre-wrap break-words">
+                            <div class="flex flex-col items-center justify-center h-full text-slate-500">
+                                <svg class="w-20 h-20 mb-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                <p class="text-lg font-semibold">No Document Selected</p>
+                                <p class="text-sm text-slate-600 mt-2">Select a document from the list to view its text content</p>
+                            </div>
                         </div>
-                        <div id="panel-native" class="tab-panel hidden w-full h-full bg-gray-700 flex items-center justify-center">
-                            Select a document to view the native file.
+                        <div id="panel-native" class="tab-panel hidden w-full h-full flex items-center justify-center">
+                            <div class="flex flex-col items-center justify-center text-slate-500">
+                                <svg class="w-20 h-20 mb-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                </svg>
+                                <p class="text-lg font-semibold">No Document Selected</p>
+                                <p class="text-sm text-slate-600 mt-2">Select a document from the list to view the native file</p>
+                            </div>
                         </div>
-                        <div id="panel-metadata" class="tab-panel hidden w-full h-full overflow-y-auto p-4">
-                            Select a document to view its metadata.
+                        <div id="panel-metadata" class="tab-panel hidden w-full h-full overflow-y-auto p-6">
+                            <div class="flex flex-col items-center justify-center h-full text-slate-500">
+                                <svg class="w-20 h-20 mb-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <p class="text-lg font-semibold">No Document Selected</p>
+                                <p class="text-sm text-slate-600 mt-2">Select a document from the list to view its metadata</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -730,7 +968,7 @@
                     const fragment = document.createDocumentFragment();
                     for (const doc of docs) {
                         const docItem = document.createElement('div');
-                        docItem.className = 'doc-item p-3 border-b border-gray-700 cursor-pointer hover:bg-gray-700 transition duration-100 truncate';
+                        docItem.className = 'doc-item p-3.5 border-b border-slate-700/50 cursor-pointer transition-all duration-200 truncate text-slate-200 font-medium';
                         docItem.textContent = doc.id;
                         docItem.dataset.docId = doc.id;
                         
@@ -957,28 +1195,16 @@
                     // Display response
                     aiResponseContentEl.textContent = answer;
 
-                    // Display sources if available
-                    if (sources && sources.length > 0) {
-                        aiSourcesEl.innerHTML = '<div class="mt-4 text-gray-400">Sources:</div>';
-                        sources.forEach(source => {
-                            const sourceLink = document.createElement('div');
-                            sourceLink.className = 'ai-source-link';
-                            sourceLink.textContent = source.id;
-                            sourceLink.onclick = () => showDocument(source);
-                            aiSourcesEl.appendChild(sourceLink);
-                        });
-                    }
-                    
                     // Display sources
                     if (sources && sources.length > 0) {
                         aiSourcesEl.innerHTML = '<h4 class="text-sm font-semibold text-gray-400 mb-2">Sources:</h4>';
-                        sources.forEach(docId => {
+                        sources.forEach(source => {
                             const sourceLink = document.createElement('span');
                             sourceLink.className = 'ai-source-link';
-                            sourceLink.textContent = docId;
-                            sourceLink.dataset.docId = docId;
+                            sourceLink.textContent = source.id;
+                            sourceLink.dataset.docId = source.id;
                             sourceLink.onclick = () => {
-                                const docToOpen = allDocuments.find(d => d.id === docId);
+                                const docToOpen = allDocuments.find(d => d.id === source.id);
                                 if (docToOpen) {
                                     showDocument(docToOpen);
                                     textTabBtn.click();
