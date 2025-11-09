@@ -244,15 +244,89 @@
         <div class="flex items-center gap-6">
             <small id="version-display" class="text-slate-400 font-medium">v<span id="version-number">-</span></small>
             <div id="auth-status" class="text-sm text-slate-300 font-medium px-3 py-1 bg-slate-700/50 rounded-lg">initializing...</div>
+            <button id="signout-btn" class="hidden text-sm text-slate-300 hover:text-white font-medium px-4 py-2 bg-slate-700/50 hover:bg-slate-700 rounded-lg transition-colors">
+                Sign Out
+            </button>
         </div>
     </header>
+
+    <!-- Login Screen -->
+    <div id="login-screen" class="flex-1 flex items-center justify-center p-8 hidden">
+        <div class="max-w-md w-full">
+            <div class="card p-8">
+                <div class="text-center mb-8">
+                    <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg flex items-center justify-center shadow-lg mx-auto mb-4">
+                        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-bold text-white mb-2">Welcome to eDiscover</h2>
+                    <p class="text-slate-400">Please sign in to continue</p>
+                </div>
+
+                <div id="login-form">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-2">Email</label>
+                            <input type="email" id="login-email" placeholder="you@example.com" class="w-full bg-slate-700/70 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-2">Password</label>
+                            <input type="password" id="login-password" placeholder="••••••••" class="w-full bg-slate-700/70 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div id="login-error" class="text-red-400 text-sm hidden"></div>
+                        <button id="login-btn" class="btn-primary w-full text-white font-bold py-3 px-6 rounded-lg focus:outline-none">
+                            Sign In
+                        </button>
+                        <div class="text-center mt-4">
+                            <button id="show-signup-btn" class="text-blue-400 hover:text-blue-300 text-sm">
+                                Don't have an account? Sign up
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="signup-form" class="hidden">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-2">Email</label>
+                            <input type="email" id="signup-email" placeholder="you@example.com" class="w-full bg-slate-700/70 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-2">Password</label>
+                            <input type="password" id="signup-password" placeholder="••••••••" class="w-full bg-slate-700/70 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-2">Confirm Password</label>
+                            <input type="password" id="signup-password-confirm" placeholder="••••••••" class="w-full bg-slate-700/70 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div id="signup-error" class="text-red-400 text-sm hidden"></div>
+                        <button id="signup-btn" class="btn-success w-full text-white font-bold py-3 px-6 rounded-lg focus:outline-none">
+                            Create Account
+                        </button>
+                        <div class="text-center mt-4">
+                            <button id="show-login-btn" class="text-blue-400 hover:text-blue-300 text-sm">
+                                Already have an account? Sign in
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Main Content Area -->
     <div id="main-content" class="flex-1 flex flex-col hidden overflow-hidden">
         
         <!-- Main Tabs -->
         <div id="main-tabs" class="flex border-b border-slate-700 bg-slate-800/50 backdrop-blur-sm">
-            <button id="tab-review" data-target="review-view" class="tab-btn active text-white font-semibold py-4 px-8 focus:outline-none flex items-center gap-2">
+            <button id="tab-ingest" data-target="ingest-view" class="tab-btn active text-white font-semibold py-4 px-8 focus:outline-none flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                </svg>
+                Ingest
+            </button>
+            <button id="tab-review" data-target="review-view" class="tab-btn text-white font-semibold py-4 px-8 focus:outline-none flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                 </svg>
@@ -264,19 +338,13 @@
                 </svg>
                 Analyze
             </button>
-            <button id="tab-ingest" data-target="ingest-view" class="tab-btn text-white font-semibold py-4 px-8 focus:outline-none flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                </svg>
-                Ingest
-            </button>
         </div>
 
         <!-- Views Container -->
         <div id="main-views" class="flex-1 flex overflow-hidden">
             
             <!-- Ingest View -->
-            <div id="ingest-view" class="tab-panel hidden p-8 w-full overflow-y-auto">
+            <div id="ingest-view" class="tab-panel p-8 w-full overflow-y-auto">
                 <div class="max-w-3xl mx-auto">
                     <div class="mb-8">
                         <h2 class="text-3xl font-bold mb-2 text-white">Ingest New Data</h2>
@@ -352,7 +420,7 @@
             </div>
 
             <!-- Review View -->
-            <div id="review-view" class="tab-panel flex-1 flex flex-row overflow-hidden">
+            <div id="review-view" class="tab-panel hidden flex-1 flex flex-row overflow-hidden">
                 <!-- Document List (Left Panel) -->
                 <div class="w-1/4 flex flex-col bg-slate-800/50 border-r border-slate-700/50 backdrop-blur-sm">
                     <div class="p-4 border-b border-slate-700/50">
@@ -455,6 +523,9 @@
                     <div id="ai-sources" class="mt-6 pt-6 border-t border-slate-700/50">
                         <!-- AI sources will be injected here -->
                     </div>
+                    <div id="ai-token-info" class="mt-4 text-xs text-slate-400 hidden">
+                        <!-- Token information will be injected here -->
+                    </div>
                 </div>
                 <div class="flex-shrink-0">
                     <div class="relative">
@@ -480,7 +551,9 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import {
             getAuth,
-            signInAnonymously,
+            signInWithEmailAndPassword,
+            createUserWithEmailAndPassword,
+            signOut,
             onAuthStateChanged
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import {
@@ -523,7 +596,24 @@
             // --- UI ELEMENTS ---
             const authStatusEl = document.getElementById('auth-status');
             const mainContent = document.getElementById('main-content');
-            
+            const loginScreen = document.getElementById('login-screen');
+            const signoutBtn = document.getElementById('signout-btn');
+
+            // Login form elements
+            const loginForm = document.getElementById('login-form');
+            const signupForm = document.getElementById('signup-form');
+            const loginEmail = document.getElementById('login-email');
+            const loginPassword = document.getElementById('login-password');
+            const loginBtn = document.getElementById('login-btn');
+            const loginError = document.getElementById('login-error');
+            const signupEmail = document.getElementById('signup-email');
+            const signupPassword = document.getElementById('signup-password');
+            const signupPasswordConfirm = document.getElementById('signup-password-confirm');
+            const signupBtn = document.getElementById('signup-btn');
+            const signupError = document.getElementById('signup-error');
+            const showSignupBtn = document.getElementById('show-signup-btn');
+            const showLoginBtn = document.getElementById('show-login-btn');
+
             const ingestTabBtn = document.getElementById('tab-ingest');
             const reviewTabBtn = document.getElementById('tab-review');
             const ingestView = document.getElementById('ingest-view');
@@ -560,11 +650,105 @@
             const aiLoadingEl = document.getElementById('ai-loading');
             const aiResponseContentEl = document.getElementById('ai-response-content');
             const aiSourcesEl = document.getElementById('ai-sources');
+            const aiTokenInfoEl = document.getElementById('ai-token-info');
 
             // Remove any existing queryGemini function to prevent direct API calls
             if (window.queryGemini) {
                 delete window.queryGemini;
             }
+
+            // --- AUTH UI HANDLERS ---
+            // Toggle between login and signup forms
+            showSignupBtn.addEventListener('click', () => {
+                loginForm.classList.add('hidden');
+                signupForm.classList.remove('hidden');
+                loginError.classList.add('hidden');
+                signupError.classList.add('hidden');
+            });
+
+            showLoginBtn.addEventListener('click', () => {
+                signupForm.classList.add('hidden');
+                loginForm.classList.remove('hidden');
+                loginError.classList.add('hidden');
+                signupError.classList.add('hidden');
+            });
+
+            // Handle login
+            loginBtn.addEventListener('click', async () => {
+                const email = loginEmail.value.trim();
+                const password = loginPassword.value;
+
+                if (!email || !password) {
+                    loginError.textContent = 'Please enter both email and password';
+                    loginError.classList.remove('hidden');
+                    return;
+                }
+
+                try {
+                    loginBtn.disabled = true;
+                    loginBtn.textContent = 'Signing in...';
+                    await signInWithEmailAndPassword(auth, email, password);
+                    loginError.classList.add('hidden');
+                } catch (error) {
+                    console.error('Login error:', error);
+                    loginError.textContent = error.message;
+                    loginError.classList.remove('hidden');
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Sign In';
+                }
+            });
+
+            // Handle Enter key for login
+            loginPassword.addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') loginBtn.click();
+            });
+
+            // Handle signup
+            signupBtn.addEventListener('click', async () => {
+                const email = signupEmail.value.trim();
+                const password = signupPassword.value;
+                const passwordConfirm = signupPasswordConfirm.value;
+
+                if (!email || !password || !passwordConfirm) {
+                    signupError.textContent = 'Please fill in all fields';
+                    signupError.classList.remove('hidden');
+                    return;
+                }
+
+                if (password !== passwordConfirm) {
+                    signupError.textContent = 'Passwords do not match';
+                    signupError.classList.remove('hidden');
+                    return;
+                }
+
+                if (password.length < 6) {
+                    signupError.textContent = 'Password must be at least 6 characters';
+                    signupError.classList.remove('hidden');
+                    return;
+                }
+
+                try {
+                    signupBtn.disabled = true;
+                    signupBtn.textContent = 'Creating account...';
+                    await createUserWithEmailAndPassword(auth, email, password);
+                    signupError.classList.add('hidden');
+                } catch (error) {
+                    console.error('Signup error:', error);
+                    signupError.textContent = error.message;
+                    signupError.classList.remove('hidden');
+                    signupBtn.disabled = false;
+                    signupBtn.textContent = 'Create Account';
+                }
+            });
+
+            // Handle signout
+            signoutBtn.addEventListener('click', async () => {
+                try {
+                    await signOut(auth);
+                } catch (error) {
+                    console.error('Sign out error:', error);
+                }
+            });
 
             // --- 1. INITIALIZATION ---
             // Load version number (robust: handle 404 or HTML error pages)
@@ -625,19 +809,32 @@
                     // --- 2. AUTHENTICATION ---
                     onAuthStateChanged(auth, (user) => {
                         if (user) {
-                            // User is signed in.
+                            // User is signed in
                             userId = user.uid;
-                            authStatusEl.textContent = `Logged in (Anonymous)`;
+                            const userEmail = user.email || 'Unknown user';
+                            authStatusEl.textContent = userEmail;
+                            loginScreen.classList.add('hidden');
                             mainContent.classList.remove('hidden');
+                            signoutBtn.classList.remove('hidden');
+                            // Reset login form
+                            loginBtn.disabled = false;
+                            loginBtn.textContent = 'Sign In';
+                            signupBtn.disabled = false;
+                            signupBtn.textContent = 'Create Account';
+                            loginEmail.value = '';
+                            loginPassword.value = '';
+                            signupEmail.value = '';
+                            signupPassword.value = '';
+                            signupPasswordConfirm.value = '';
                             // Start listening for documents
                             loadDocumentList();
                         } else {
-                            // No user, so sign them in.
-                            authStatusEl.textContent = "Logging in anonymously...";
-                            signInAnonymously(auth).catch((error) => {
-                                 console.error("Anonymous Login Error:", error);
-                                 authStatusEl.textContent = `Login failed: ${error.message}`;
-                            });
+                            // No user, show login screen
+                            userId = null;
+                            authStatusEl.textContent = 'Not logged in';
+                            mainContent.classList.add('hidden');
+                            loginScreen.classList.remove('hidden');
+                            signoutBtn.classList.add('hidden');
                         }
                     });
 
@@ -1123,16 +1320,17 @@
             async function showDocument(doc) {
                 if (!doc) return;
                 currentDocument = doc;
-                
+
+                // Switch to Review tab to show the document
+                reviewTabBtn.click();
+
                 // Update selected item in list
                 document.querySelectorAll('.doc-item').forEach(el => {
                     el.classList.toggle('selected', el.dataset.docId === doc.id);
                 });
-                
-                // Switch to text tab by default *if* AI tab is not active
-                if (!aiTabBtn.classList.contains('active')) {
-                    textTabBtn.click();
-                }
+
+                // Switch to text tab by default
+                textTabBtn.click();
 
                 // --- 1. Populate Text Panel ---
                 textPanel.textContent = "Loading text...";
@@ -1230,6 +1428,21 @@
 
             // --- 6. AI ASSISTANT LOGIC (REFACTORED) ---
 
+            // Function to parse simple markdown bold syntax
+            function parseMarkdown(text) {
+                if (!text) return '';
+                // Escape HTML to prevent XSS
+                const escaped = text
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+
+                // Convert **text** to <strong>text</strong>
+                return escaped.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            }
+
             aiQueryBtn.addEventListener('click', () => runAiQuery());
             aiQueryInput.addEventListener('keyup', (e) => {
                 if (e.key === 'Enter') runAiQuery();
@@ -1250,8 +1463,10 @@
                 aiLoadingEl.classList.remove('hidden');
                 aiResponseContentEl.classList.add('hidden');
                 aiSourcesEl.classList.add('hidden');
+                aiTokenInfoEl.classList.add('hidden');
                 aiResponseContentEl.textContent = "";
                 aiSourcesEl.innerHTML = "";
+                aiTokenInfoEl.innerHTML = "";
                 aiQueryBtn.disabled = true;
 
                 console.log('AI Search Keywords:', [userQuery]); // Log the query for debugging
@@ -1268,14 +1483,14 @@
                     }
                     
                     console.log('Cloud Function response:', result);
-                    const { answer, sources } = result.data;
+                    const { answer, sources, tokenInfo } = result.data;
 
                     if (!answer) {
                         throw new Error('No answer received from AI');
                     }
 
-                    // Display response
-                    aiResponseContentEl.textContent = answer;
+                    // Display response with markdown parsing
+                    aiResponseContentEl.innerHTML = parseMarkdown(answer);
 
                     // Display sources
                     if (sources && sources.length > 0) {
@@ -1295,6 +1510,13 @@
                             aiSourcesEl.appendChild(sourceLink);
                         });
                         aiSourcesEl.classList.remove('hidden');
+                    }
+
+                    // Display token information
+                    if (tokenInfo) {
+                        const percentUsed = Math.round((tokenInfo.estimatedInputTokens / tokenInfo.maxInputTokens) * 100);
+                        aiTokenInfoEl.innerHTML = `📊 Processed ${tokenInfo.documentsProcessed} document(s) • Estimated tokens: ${tokenInfo.estimatedInputTokens.toLocaleString()} / ${tokenInfo.maxInputTokens.toLocaleString()} (${percentUsed}%)`;
+                        aiTokenInfoEl.classList.remove('hidden');
                     }
 
                 } catch (error) {
