@@ -69,8 +69,8 @@ export const docQuery = onCall({
     // paths (v1, v1beta2, v1beta1) — some projects may expose different versions.
     // Prefer Gemini if available in the project; fallback to text-bison.
     const modelCandidates = [
-      'gemini-pro',
-      'text-bison-001'
+      'googleai/gemini-2.5-flash',
+      'gemini-2.5-flash'
     ];
     
     // Prepare request body for Gemini API
@@ -158,7 +158,7 @@ export const docQuery = onCall({
       console.warn('Falling back to API key auth for Generative API');
       for (const modelName of modelCandidates) {
         const isGemini = modelName.startsWith('gemini');
-        const url = `https://generativelanguage.googleapis.com/v1/models/${modelName}:${isGemini ? 'generateContent' : 'generateText'}?key=${apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:${isGemini ? 'generateContent' : 'generateText'}?key=${apiKey}`;
         console.info(`Attempting Generative API (API key) at ${url}`);
         try {
           const requestBody = isGemini ? geminiBody : legacyBody;
