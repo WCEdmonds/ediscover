@@ -107,7 +107,7 @@ export const docQuery = onCall({
       }],
       generationConfig: {
         temperature: 0.3,
-        maxOutputTokens: 1024
+        maxOutputTokens: 8192  // Increased from 1024 to allow longer responses
       }
     };
 
@@ -115,7 +115,7 @@ export const docQuery = onCall({
     const legacyBody = {
       prompt: { text: prompt },
       temperature: 0.3,
-      maxOutputTokens: 1024
+      maxOutputTokens: 8192  // Increased from 1024 to allow longer responses
     };
 
     // Helper to attempt a single URL with given headers
@@ -170,9 +170,33 @@ export const docQuery = onCall({
           const payload = await tryUrl(url, { Authorization: `Bearer ${accessToken}` }, requestBody);
           // success
           console.info(`Generative API call succeeded using service-account auth (model: ${modelName})`);
+          console.log('Full API response:', JSON.stringify(payload, null, 2));
+
+          const candidate = payload.candidates?.[0];
           const answerText = isGemini
-            ? payload.candidates?.[0]?.content?.parts?.[0]?.text
-            : payload.candidates?.[0]?.output;
+            ? candidate?.content?.parts?.[0]?.text
+            : candidate?.output;
+          const finishReason = candidate?.finishReason;
+
+          // Handle MAX_TOKENS finish reason
+          if (finishReason === 'MAX_TOKENS') {
+            console.warn('Response hit MAX_TOKENS limit');
+            // Return partial response if available, otherwise throw error
+            if (answerText) {
+              return {
+                answer: answerText + '\n\n[Response truncated - maximum output length reached]',
+                sources: relevantDocs,
+                tokenInfo: {
+                  estimatedInputTokens: promptTokens,
+                  maxInputTokens: MAX_INPUT_TOKENS,
+                  documentsProcessed: docsWithText.length,
+                  warning: 'Response was truncated due to length'
+                }
+              };
+            } else {
+              throw new Error('Response exceeded maximum output length before generating any content. Try asking a more specific question or querying fewer documents.');
+            }
+          }
 
           if (!answerText) {
             console.warn('Unexpected API response format:', JSON.stringify(payload));
@@ -214,9 +238,33 @@ export const docQuery = onCall({
           const requestBody = isGemini ? geminiBody : legacyBody;
           const payload = await tryUrl(url, {}, requestBody);
           console.info(`Generative API call succeeded using API key (model: ${modelName})`);
+          console.log('Full API response:', JSON.stringify(payload, null, 2));
+
+          const candidate = payload.candidates?.[0];
           const answerText = isGemini
-            ? payload.candidates?.[0]?.content?.parts?.[0]?.text
-            : payload.candidates?.[0]?.output;
+            ? candidate?.content?.parts?.[0]?.text
+            : candidate?.output;
+          const finishReason = candidate?.finishReason;
+
+          // Handle MAX_TOKENS finish reason
+          if (finishReason === 'MAX_TOKENS') {
+            console.warn('Response hit MAX_TOKENS limit');
+            // Return partial response if available, otherwise throw error
+            if (answerText) {
+              return {
+                answer: answerText + '\n\n[Response truncated - maximum output length reached]',
+                sources: relevantDocs,
+                tokenInfo: {
+                  estimatedInputTokens: promptTokens,
+                  maxInputTokens: MAX_INPUT_TOKENS,
+                  documentsProcessed: docsWithText.length,
+                  warning: 'Response was truncated due to length'
+                }
+              };
+            } else {
+              throw new Error('Response exceeded maximum output length before generating any content. Try asking a more specific question or querying fewer documents.');
+            }
+          }
 
           if (!answerText) {
             console.warn('Unexpected API response format:', JSON.stringify(payload));

@@ -1515,7 +1515,14 @@
                     // Display token information
                     if (tokenInfo) {
                         const percentUsed = Math.round((tokenInfo.estimatedInputTokens / tokenInfo.maxInputTokens) * 100);
-                        aiTokenInfoEl.innerHTML = `📊 Processed ${tokenInfo.documentsProcessed} document(s) • Estimated tokens: ${tokenInfo.estimatedInputTokens.toLocaleString()} / ${tokenInfo.maxInputTokens.toLocaleString()} (${percentUsed}%)`;
+                        let tokenInfoText = `📊 Processed ${tokenInfo.documentsProcessed} document(s) • Estimated tokens: ${tokenInfo.estimatedInputTokens.toLocaleString()} / ${tokenInfo.maxInputTokens.toLocaleString()} (${percentUsed}%)`;
+
+                        // Add warning if present
+                        if (tokenInfo.warning) {
+                            tokenInfoText += ` <span class="text-yellow-400">⚠️ ${tokenInfo.warning}</span>`;
+                        }
+
+                        aiTokenInfoEl.innerHTML = tokenInfoText;
                         aiTokenInfoEl.classList.remove('hidden');
                     }
 
