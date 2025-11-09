@@ -69,8 +69,9 @@ export const docQuery = onCall({
     // paths (v1, v1beta2, v1beta1) — some projects may expose different versions.
     // Prefer Gemini if available in the project; fallback to text-bison.
     const modelCandidates = [
-      'gemini-pro',
-      'text-bison-001'
+      'gemini-1.5-flash',  // Faster, more efficient Gemini 1.5 model
+      'gemini-1.5-pro',    // More capable Gemini 1.5 model as fallback
+      'text-bison-001'     // Legacy PaLM model as final fallback
     ];
     
     // Prepare request body for Gemini API
