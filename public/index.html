@@ -203,9 +203,30 @@
             background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
             border-radius: 0.75rem;
         }
+
+        @media (max-width: 768px) {
+            #mobile-warning {
+                display: flex;
+            }
+            #main-content, header {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200 font-sans h-full flex flex-col antialiased">
+
+    <!-- Mobile Warning -->
+    <div id="mobile-warning" class="fixed inset-0 bg-gray-900 bg-opacity-95 flex items-center justify-center p-4 z-50 hidden">
+        <div class="text-center text-white">
+            <svg class="mx-auto h-12 w-12 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            <h2 class="mt-6 text-2xl font-bold">Screen Too Small</h2>
+            <p class="mt-2 text-lg text-gray-300">For the best experience, please use eDiscover on a desktop or laptop computer.</p>
+            <p class="mt-1 text-sm text-gray-400">The interface is not optimized for mobile devices.</p>
+        </div>
+    </div>
 
     <!-- Header -->
     <header class="shadow-lg p-4 flex justify-between items-center z-10">
