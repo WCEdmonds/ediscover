@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Document Reviewer</title>
+    <!-- Using Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Simple scrollbar styling */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1a202c; }
+        ::-webkit-scrollbar-thumb { background: #4a5568; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #718096; }
+        
+        /* Style for the selected document */
+        .doc-item.selected { background-color: #4a5568; }
+        
+        /* Tab styling */
+        .tab-btn { background-color: #2d3748; }
+        .tab-btn.active { background-color: #4a5568; }
+
+        /* Custom file input button styling */
+        .file-input-btn {
+            display: inline-block;
+            background: #2b6cb0;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.15s ease-in-out;
+        }
+        .file-input-btn:hover {
+            background: #2c5282;
+        }
+        .file-input-btn-label {
+            display: inline-block;
+            margin-left: 12px;
+            font-style: italic;
+            color: #a0aec0; /* text-gray-400 */
+        }
+
+        /* Hide the actual file input */
+        input[type="file"].hidden-file-input {
+            width: 0.1px;
+            height: 0.1px;
+            opacity: 0;
+            overflow: hidden;
+            position: absolute;
+            z-index: -1;
+        }
+
+        /* AI Panel styles */
+        .ai-response {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+        }
+        /* Simple loading spinner */
+        .spinner {
+            border: 4px solid #4a5568; /* gray-600 */
+            border-top: 4px solid #3b82f6; /* blue-500 */
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .ai-source-link {
+            display: inline-block;
+            background-color: #374151; /* gray-700 */
+            color: #d1d5db; /* gray-300 */
+            padding: 2px 8px;
+            border-radius: 0.25rem;
+            margin: 2px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+        }
+        .ai-source-link:hover {
+            background-color: #4b5563; /* gray-600 */
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 font-sans h-full flex flex-col antialiased">
+
+    <!-- Header -->
+    <header class="bg-gray-800 shadow-md p-3 flex justify-between items-center z-10">
+        <h1 class="text-xl font-bold text-white">Document Review Platform</h1>
+        <small id="version-display">Version: <span id="version-number">-</span></small>
+        <div id="auth-status" class="text-sm text-gray-400">initializing...</div>
+    </header>
+
+    <!-- Main Content Area -->
+    <div id="main-content" class="flex-1 flex flex-col hidden overflow-hidden">
+        
+        <!-- Main Tabs -->
+        <div id="main-tabs" class="flex border-b border-gray-700 bg-gray-800">
+            <button id="tab-review" data-target="review-view" class="tab-btn active text-white font-semibold py-3 px-6 rounded-t-lg focus:outline-none">Review</button>
+            <button id="tab-ingest" data-target="ingest-view" class="tab-btn text-white font-semibold py-3 px-6 rounded-t-lg focus:outline-none">Ingest</button>
+        </div>
+
+        <!-- Views Container -->
+        <div id="main-views" class="flex-1 flex overflow-hidden">
+            
+            <!-- Ingest View -->
+            <div id="ingest-view" class="tab-panel hidden p-8 bg-gray-800 w-full overflow-y-auto">
+                <div class="max-w-2xl mx-auto">
+                    <h2 class="text-2xl font-semibold mb-6 text-white">Ingest New Data</h2>
+                    <div class="space-y-6">
+                        <!-- .dat File Input -->
+                        <div>
+                            <label for="dat-file-input" class="file-input-btn">Select .dat File</label>
+                            <span id="dat-file-label" class="file-input-btn-label">No file selected...</span>
+                            <input type="file" id="dat-file-input" class="hidden-file-input" accept=".dat">
+                            <p class="text-sm text-gray-400 mt-2">Select the main .dat load file.</p>
+                        </div>
+                        
+                        <!-- NATIVE Folder Input -->
+                        <div>
+                            <label for="native-folder-input" class="file-input-btn">Select NATIVE Folder</label>
+                            <span id="native-folder-label" class="file-input-btn-label">No folder selected...</span>
+                            <input type="file" id="native-folder-input" class="hidden-file-input" webkitdirectory directory>
+                            <p class="text-sm text-gray-400 mt-2">Select the folder containing all native files (e.g., .../NATIVE/)</p>
+                        </div>
+                        
+                        <!-- TEXT Folder Input -->
+                        <div>
+                            <label for="text-folder-input" class="file-input-btn">Select TEXT Folder</label>
+                            <span id="text-folder-label" class="file-input-btn-label">No folder selected...</span>
+                            <input type="file" id="text-folder-input" class="hidden-file-input" webkitdirectory directory>
+                            <p class="text-sm text-gray-400 mt-2">Select the folder containing all OCR/extracted text files (e.g., .../TEXT/)</p>
+                        </div>
+                        
+                        <!-- Ingest Button -->
+                        <div class="pt-4">
+                            <button id="ingest-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg text-lg focus:outline-none transition duration-150 disabled:opacity-50"
+                            >Start Ingestion</button>
+                            <p id="ingest-progress" class="text-gray-300 mt-4 h-6"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Review View -->
+            <div id="review-view" class="tab-panel flex-1 flex flex-row overflow-hidden">
+                <!-- Document List (Left Panel) -->
+                <div class="w-1/4 flex flex-col bg-gray-800 border-r border-gray-700">
+                    <div class="p-3 border-b border-gray-700">
+                        <input type="search" id="doc-search" placeholder="Search by Doc ID..." class="w-full bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <div id="doc-count" class="text-center text-xs text-gray-400 pt-2">Loading...</div>
+                    </div>
+                    <div id="doc-list" class="flex-1 overflow-y-auto">
+                        <!-- Doc items will be injected here -->
+                    </div>
+                    <div id="doc-list-placeholder" class="flex-1 flex items-center justify-center text-gray-500 p-4 text-center">
+                        Initializing...
+                    </div>
+                </div>
+
+                <!-- Viewer (Right Panel) -->
+                <div class="w-3/4 flex flex-col bg-gray-900 overflow-hidden">
+                    <!-- Viewer Tabs -->
+                    <div id="viewer-tabs" class="flex border-b border-gray-700 bg-gray-800">
+                        <button id="tab-ai" data-target="panel-ai" class="tab-btn active text-white font-semibold py-3 px-6 rounded-t-lg focus:outline-none">AI Assistant</button>
+                        <button id="tab-text" data-target="panel-text" class="tab-btn text-white font-semibold py-3 px-6 rounded-t-lg focus:outline-none">Text</button>
+                        <button id="tab-native" data-target="panel-native" class="tab-btn text-white font-semibold py-3 px-6 rounded-t-lg focus:outline-none">Native</button>
+                        <button id="tab-metadata" data-target="panel-metadata" class="tab-btn text-white font-semibold py-3 px-6 rounded-t-lg focus:outline-none">Metadata</button>
+                    </div>
+                    
+                    <!-- Viewer Panels -->
+                    <div id="viewer-panels" class="flex-1 relative overflow-hidden">
+                         <!-- AI Assistant Panel -->
+                        <div id="panel-ai" class="tab-panel w-full h-full flex flex-col p-4 overflow-hidden">
+                            <div class="flex-shrink-0 mb-4">
+                                <p class="text-sm text-gray-400 mb-3">Ask a question about your ingested documents:</p>
+                                <div class="flex">
+                                    <input type="text" id="ai-query-input" placeholder="e.g., 'Summarize documents from Danny Lee about Symbio'" class="flex-1 bg-gray-700 text-white rounded-l-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <button id="ai-query-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-r-lg focus:outline-none">Send</button>
+                                </div>
+                            </div>
+                            <div class="flex-1 overflow-y-auto bg-gray-800 rounded-lg p-4">
+                                <div id="ai-loading" class="hidden flex-col items-center justify-center h-full">
+                                    <div class="spinner"></div>
+                                    <p class="text-gray-400 mt-3">Searching database and reading text...</p>
+                                </div>
+                                <div id="ai-response-content" class="ai-response text-gray-300">
+                                    Ask a question about your entire document set. The AI will search document metadata to find relevant files, read their text, and generate a (much more accurate) answer.
+                                </div>
+                                <div id="ai-sources" class="mt-4 pt-4 border-t border-gray-700">
+                                    <!-- AI sources will be injected here -->
+                                </div>
+                            </div>
+                        </div>
+                        <div id="panel-text" class="tab-panel hidden w-full h-full overflow-y-auto p-4 whitespace-pre-wrap break-words">
+                            Select a document to view its text.
+                        </div>
+                        <div id="panel-native" class="tab-panel hidden w-full h-full bg-gray-700 flex items-center justify-center">
+                            Select a document to view the native file.
+                        </div>
+                        <div id="panel-metadata" class="tab-panel hidden w-full h-full overflow-y-auto p-4">
+                            Select a document to view its metadata.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    
+    <!-- Modal Placeholder -->
+    <!-- The modal will be added here by JavaScript -->
+
+    <!-- Firebase SDKs and App Logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            signInAnonymously, 
+            onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            doc, 
+            setDoc, 
+            collection, 
+            onSnapshot,
+            query,
+            setLogLevel
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { 
+            getStorage, 
+            ref, 
+            uploadBytes, 
+            getDownloadURL 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+        // *** NEW *** Import Firebase Functions
+        import { 
+            getFunctions, 
+            httpsCallable 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-functions.js";
+        
+        // --- GLOBAL STATE ---
+        let db, auth, storage, functions;
+        let userId, appId;
+        let allDocuments = [];
+        let currentDocument = null;
+        let unsubscribeDocListener = null;
+        
+        // *** NEW *** Reference to our Genkit Cloud Function
+        let docQuery;
+
+        // --- Wait for DOM to load before running app logic ---
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // --- UI ELEMENTS ---
+            const authStatusEl = document.getElementById('auth-status');
+            const mainContent = document.getElementById('main-content');
+            
+            const ingestTabBtn = document.getElementById('tab-ingest');
+            const reviewTabBtn = document.getElementById('tab-review');
+            const ingestView = document.getElementById('ingest-view');
+            const reviewView = document.getElementById('review-view');
+            
+            const datFileInput = document.getElementById('dat-file-input');
+            const nativeFolderInput = document.getElementById('native-folder-input');
+            const textFolderInput = document.getElementById('text-folder-input');
+            
+            const datFileLabel = document.getElementById('dat-file-label');
+            const nativeFolderLabel = document.getElementById('native-folder-label');
+            const textFolderLabel = document.getElementById('text-folder-label');
+            
+            const ingestBtn = document.getElementById('ingest-btn');
+            const ingestProgress = document.getElementById('ingest-progress');
+            
+            const docListEl = document.getElementById('doc-list');
+            const docSearchEl = document.getElementById('doc-search');
+            const docCountEl = document.getElementById('doc-count');
+            const docListPlaceholder = document.getElementById('doc-list-placeholder');
+
+            const textTabBtn = document.getElementById('tab-text');
+            const metadataTabBtn = document.getElementById('tab-metadata');
+            const nativeTabBtn = document.getElementById('tab-native');
+            const aiTabBtn = document.getElementById('tab-ai');
+            const textPanel = document.getElementById('panel-text');
+            const metadataPanel = document.getElementById('panel-metadata');
+            const nativePanel = document.getElementById('panel-native');
+            const aiPanel = document.getElementById('panel-ai');
+
+            // AI Panel Elements
+            const aiQueryInput = document.getElementById('ai-query-input');
+            const aiQueryBtn = document.getElementById('ai-query-btn');
+            const aiLoadingEl = document.getElementById('ai-loading');
+            const aiResponseContentEl = document.getElementById('ai-response-content');
+            const aiSourcesEl = document.getElementById('ai-sources');
+
+            // Remove any existing queryGemini function to prevent direct API calls
+            if (window.queryGemini) {
+                delete window.queryGemini;
+            }
+
+            // --- 1. INITIALIZATION ---
+            // Load version number (robust: handle 404 or HTML error pages)
+            (async () => {
+                try {
+                    const resp = await fetch('/version.json');
+                    if (!resp.ok) {
+                        console.debug('version.json not found or returned error', resp.status);
+                        document.getElementById('version-number').textContent = 'n/a';
+                        return;
+                    }
+                    const contentType = resp.headers.get('content-type') || '';
+                    if (!contentType.includes('application/json')) {
+                        console.debug('version.json returned non-JSON content-type:', contentType);
+                        document.getElementById('version-number').textContent = 'n/a';
+                        return;
+                    }
+                    const data = await resp.json();
+                    if (data && data.version) {
+                        document.getElementById('version-number').textContent = data.version;
+                    } else {
+                        document.getElementById('version-number').textContent = 'n/a';
+                    }
+                } catch (err) {
+                    console.debug('Could not load version.json:', err.message || err);
+                    document.getElementById('version-number').textContent = 'n/a';
+                }
+            })();
+            function initializeAppLogic() {
+                try {
+                    // --- !!! IMPORTANT !!! ---
+                    // PASTE YOUR FIREBASE CONFIG OBJECT HERE
+                    // You get this from Project Settings > General > Your apps > Web app
+                        const firebaseConfig = {
+                          apiKey: "AIzaSyDds56xoCKTcY8NEMMLqoQQZ3hNWB0TVts",
+                          authDomain: "ediscover.firebaseapp.com",
+                          projectId: "ediscover",
+                          storageBucket: "ediscover.firebasestorage.app",
+                          messagingSenderId: "634524579649",
+                          appId: "1:634524579649:web:6996d2f02aab10b49213c0",
+                          measurementId: "G-TY6NMLVQ88"
+                        };
+                    
+                    // Use a hardcoded, unique ID for your app's data
+                    appId = 'eDiscovery-App'; 
+
+                    // Check if config is still the placeholder
+                    if (firebaseConfig.apiKey === "AIzaSy...") {
+                         throw new Error("Please paste your Firebase config object into the script (line 130).");
+                    }
+
+                    // Init Firebase
+                    const app = initializeApp(firebaseConfig);
+                    db = getFirestore(app);
+                    auth = getAuth(app);
+                    storage = getStorage(app);
+                    
+                    // Initialize Firebase Functions and create callable reference
+                    functions = getFunctions(app);
+                    functions.region = 'us-central1'; // Explicitly set region
+                    docQuery = httpsCallable(functions, 'docQuery');
+                    
+                    console.log('Firebase initialization complete');
+
+                    // Enable debug logging for Firestore
+                    setLogLevel('Debug');
+
+                    // --- 2. AUTHENTICATION ---
+                    onAuthStateChanged(auth, (user) => {
+                        if (user) {
+                            // User is signed in.
+                            userId = user.uid;
+                            authStatusEl.textContent = `Logged in (Anonymous)`;
+                            mainContent.classList.remove('hidden');
+                            // Start listening for documents
+                            loadDocumentList();
+                        } else {
+                            // No user, so sign them in.
+                            authStatusEl.textContent = "Logging in anonymously...";
+                            signInAnonymously(auth).catch((error) => {
+                                 console.error("Anonymous Login Error:", error);
+                                 authStatusEl.textContent = `Login failed: ${error.message}`;
+                            });
+                        }
+                    });
+
+                } catch (error) {
+                    console.error("Firebase Init Error:", error);
+                    authStatusEl.textContent = `Error: ${error.message}`;
+                }
+            }
+
+            // --- 3. INGESTION LOGIC ---
+            // (This section is unchanged from the previous version)
+
+            /**
+             * Helper function to bind file input to its label for better UI
+             */
+            function setupFileInput(inputId, labelId) {
+                const input = document.getElementById(inputId);
+                const label = document.getElementById(labelId);
+                if (!input || !label) {
+                    console.warn(`Could not find input ${inputId} or label ${labelId}`);
+                    return;
+                }
+                const labelText = label.textContent;
+
+                input.addEventListener('change', () => {
+                    if (input.files.length > 0) {
+                        if (input.webkitdirectory) {
+                            label.textContent = `${input.files.length} files selected`;
+                        } else {
+                            label.textContent = input.files[0].name;
+                        }
+                    } else {
+                        label.textContent = labelText;
+                    }
+                });
+            }
+            setupFileInput('dat-file-input', 'dat-file-label');
+            setupFileInput('native-folder-input', 'native-folder-label');
+            setupFileInput('text-folder-input', 'text-folder-label');
+
+            /**
+             * Attempts to read a file using multiple common encodings.
+             * @param {File} file - The .dat file to read.
+             * @returns {Promise<string>} The file content as a string.
+             */
+            async function readDatFileWithEncodings(file) {
+                // iso-8859-1 (latin-1) is the most likely for Concordance files
+                const encodingsToTry = ['iso-8859-1', 'utf-8', 'windows-1252'];
+                
+                for (const encoding of encodingsToTry) {
+                    try {
+                        console.log(`Attempting to read .dat with encoding: ${encoding}`);
+                        // Use a FileReader to read as ArrayBuffer first
+                        const buffer = await file.arrayBuffer();
+                        // Use fatal: true to ensure it fails on bad encoding, not replace characters
+                        const decoder = new TextDecoder(encoding, { fatal: true }); 
+                        const content = decoder.decode(buffer);
+                        
+                        // Simple heuristic: if it contains the known delimiter, it's probably right.
+                        if (content.includes(String.fromCharCode(20))) {
+                            console.log(`Successfully read with ${encoding}`);
+                            return content;
+                        }
+                    } catch (e) {
+                        console.warn(`Failed to read with ${encoding}:`, e.message);
+                    }
+                }
+                throw new Error("Could not determine correct .dat file encoding. Tried iso-8859-1, utf-8, and windows-1252.");
+            }
+
+            /**
+             * Parses a Concordance-style .dat file in the browser.
+             * @param {string} datContent - The full text content of the .dat file.
+             * @returns {Array<Object>} An array of document metadata objects.
+             */
+            function parseDAT(datContent) {
+                console.log("Parsing .dat content...");
+                // Use a regex to split by any common line ending (\r\n, \n, or \r)
+                const lines = datContent.split(/\r\n?|\n/);
+                console.log(`File split into ${lines.length} lines.`);
+                
+                if (lines.length < 2) {
+                    throw new Error("File is empty or has no header line.");
+                }
+
+                const delimiter = String.fromCharCode(20); // ASCII 20
+                const quoteChar = String.fromCharCode(254); // ASCII 254 (þ)
+                
+                // Helper to clean the field names from the header
+                const cleanHeader = (header) => {
+                    let clean = header;
+                    if (clean.startsWith(quoteChar)) {
+                        clean = clean.substring(1); // Remove prefix quote
+                    }
+                    if (clean.endsWith(delimiter)) {
+                        clean = clean.substring(0, clean.length - 1); // Remove suffix delimiter
+                    }
+                    if (clean.endsWith(quoteChar)) {
+                        clean = clean.substring(0, clean.length - 1); // Remove suffix quote
+                    }
+                    return clean;
+                };
+
+                let headerLine = lines[0];
+                
+                // --- FIX FOR BOM ---
+                // Check for and remove Byte Order Mark (BOM) if it exists
+                if (headerLine.charCodeAt(0) === 0xFEFF || headerLine.charCodeAt(0) === 0xFFFE) {
+                    console.log("Detected and removed BOM from header.");
+                    headerLine = headerLine.substring(1);
+                }
+
+                const headers = headerLine.trim().split(delimiter).map(cleanHeader).filter(h => h); // Filter out empty strings
+                
+                // Check for mandatory header
+                if (!headers.includes("Beg Bates")) {
+                    console.error("--- DEBUG: HEADERS FOUND ---");
+                    headers.forEach((h, i) => {
+                        console.log(`Header[${i}]: "${h}" (Length: ${h.length})`);
+                        // Log char codes for debugging invisible characters
+                        let codes = '';
+                        for(let c = 0; c < h.length; c++) codes += h.charCodeAt(c) + ' ';
+                        console.log(`    Char Codes: ${codes}`);
+                    });
+                    console.error("-----------------------------");
+                    throw new Error("Could not find required 'Beg Bates' column. Check .dat file format and console for debug info.");
+                }
+
+                const records = [];
+                
+                for (let i = 1; i < lines.length; i++) {
+                    if (lines[i].trim() === "") continue; // Skip empty lines
+
+                    const values = lines[i].split(delimiter);
+                    
+                    if (values.length < headers.length) {
+                        console.warn(`Skipping malformed line ${i + 1}: expected ${headers.length} fields, got ${values.length}`);
+                        continue; 
+                    }
+
+                    const record = {};
+                    for (let j = 0; j < headers.length; j++) {
+                        let value = values[j];
+                        if (value && value.startsWith(quoteChar)) {
+                            value = value.substring(1); // Remove prefix
+                        }
+                        if (value && value.endsWith(quoteChar)) {
+                            value = value.substring(0, value.length - 1); // Remove suffix
+                        }
+                        
+                        record[headers[j]] = value;
+                    }
+                    records.push(record);
+                }
+                console.log(`Successfully parsed ${records.length} records.`);
+                return records;
+            }
+
+            // Handle the "Ingest" button click
+            ingestBtn.onclick = async () => {
+                const datFile = datFileInput.files[0];
+                const nativeFiles = nativeFolderInput.files;
+                const textFiles = textFolderInput.files;
+
+                if (!datFile || nativeFiles.length === 0 || textFiles.length === 0) {
+                    showModal("Please select the .dat file, the NATIVE folder, and the TEXT folder.");
+                    return;
+                }
+
+                if (!userId) {
+                    showModal("You must be logged in to ingest data.");
+                    return;
+                }
+
+                ingestBtn.disabled = true;
+                ingestBtn.textContent = "Ingesting...";
+                ingestProgress.textContent = "Starting ingest...";
+
+                try {
+                    // Step 1: Read and parse the .dat file
+                    ingestProgress.textContent = "Reading .dat file...";
+                    const datContent = await readDatFileWithEncodings(datFile);
+                    const records = parseDAT(datContent);
+                    
+                    if (records.length === 0) {
+                        throw new Error("No records were parsed from the .dat file. Check file encoding and format.");
+                    }
+                    
+                    // Step 2: Create file lookup maps
+                    ingestProgress.textContent = "Indexing files...";
+                    
+                    const nativeFileMap = new Map();
+                    for (const file of nativeFiles) {
+                        const cleanPath = file.webkitRelativePath.replace(/\\/g, '/');
+                        const key = cleanPath.substring(cleanPath.indexOf('/') + 1); // "NATIVE/..." -> "00000001/..."
+                        nativeFileMap.set(key.toUpperCase(), file); // Use uppercase for robust matching
+                    }
+                    console.log(`Loaded ${nativeFileMap.size} native files into map.`);
+
+                    const textFileMap = new Map();
+                    for (const file of textFiles) {
+                        const cleanPath = file.webkitRelativePath.replace(/\\/g, '/');
+                        const key = cleanPath.substring(cleanPath.indexOf('/') + 1); // "TEXT/..." -> "00000001/..."
+                        textFileMap.set(key.toUpperCase(), file); // Use uppercase for robust matching
+                    }
+                    console.log(`Loaded ${textFileMap.size} text files into map.`);
+
+                    // Step 3: Loop, Upload to Storage, and Write to Firestore
+                    let processedCount = 0;
+                    const totalRecords = records.length;
+                    
+                    for (const record of records) {
+                        const docId = record["Beg Bates"];
+                        if (!docId) {
+                            console.warn("Skipping record with no 'Beg Bates' ID:", record);
+                            continue;
+                        }
+                        
+                        const nativePathRaw = record["NativeFile"];
+                        const textPathRaw = record["OCRPath"]; 
+
+                        let nativeStoragePath = null;
+                        let textStoragePath = null;
+                        
+                        // --- 3a. Upload Native File ---
+                        if (nativePathRaw) {
+                            const nativePath = nativePathRaw.replace(/\\/g, '/'); 
+                            const nativeKey = nativePath.substring(nativePath.indexOf('/') + 1).toUpperCase(); // "NATIVE/..." -> "00000001/..."
+                            const fileToUpload = nativeFileMap.get(nativeKey);
+
+                            if (fileToUpload) {
+                                try {
+                                    const storageRef = ref(storage, `artifacts/${appId}/users/${userId}/natives/${docId}_${fileToUpload.name}`);
+                                    await uploadBytes(storageRef, fileToUpload);
+                                    nativeStoragePath = storageRef.fullPath;
+                                } catch (uploadError) {
+                                    console.error(`Failed to upload native ${nativePath}:`, uploadError);
+                                }
+                            } else {
+                                console.warn(`Could not find matching NATIVE file for path: ${nativePath} (key: ${nativeKey})`);
+                            }
+                        }
+
+                        // --- 3b. Upload Text File ---
+                        if (textPathRaw) {
+                            const textPath = textPathRaw.replace(/\\/g, '/');
+                            const textKey = textPath.substring(textPath.indexOf('/') + 1).toUpperCase(); // "TEXT/..." -> "00000001/..."
+                            const fileToUpload = textFileMap.get(textKey);
+
+                            if (fileToUpload) {
+                                try {
+                                    const storageRef = ref(storage, `artifacts/${appId}/users/${userId}/text/${docId}.txt`);
+                                    await uploadBytes(storageRef, fileToUpload);
+                                    textStoragePath = storageRef.fullPath;
+                                } catch (uploadError) {
+                                    console.error(`Failed to upload text ${textPath}:`, uploadError);
+                                }
+                            } else {
+                                console.warn(`Could not find matching TEXT file for path: ${textPath} (key: ${textKey})`);
+                            }
+                        }
+
+                        // --- 3c. Prepare and write metadata to Firestore ---
+                        const firestoreData = {
+                            ...record, // Add all metadata from the .dat
+                            nativeStoragePath: nativeStoragePath, 
+                            textStoragePath: textStoragePath 
+                        };
+
+                        const docRef = doc(db, `artifacts/${appId}/users/${userId}/docs`, docId);
+                        await setDoc(docRef, firestoreData);
+                        
+                        processedCount++;
+                        ingestProgress.textContent = `Processed ${processedCount} / ${totalRecords} documents...`;
+                    }
+                    
+                    ingestProgress.textContent = `Ingest complete! Processed ${processedCount} documents.`;
+                    showModal("Ingestion complete!");
+                    reviewTabBtn.click(); // Switch to review tab
+
+                } catch (error) {
+                    console.error("Ingest Error:", error);
+                    ingestProgress.textContent = `Error: ${error.message}`;
+                    showModal(`Ingest failed: ${error.message}`);
+                } finally {
+                    ingestBtn.disabled = false;
+                    ingestBtn.textContent = "Start Ingestion";
+                }
+            };
+
+            // --- 4. REVIEW LOGIC ---
+
+            // Listen for realtime updates to the document list
+            function loadDocumentList() {
+                if (unsubscribeDocListener) unsubscribeDocListener();
+                
+                const docsColRef = collection(db, `artifacts/${appId}/users/${userId}/docs`);
+                const q = query(docsColRef); 
+
+                unsubscribeDocListener = onSnapshot(q, (snapshot) => {
+                    allDocuments = [];
+                    snapshot.forEach((doc) => {
+                        allDocuments.push({ id: doc.id, ...doc.data() });
+                    });
+                    
+                    // Sort by 'Beg Bates' (doc.id)
+                    allDocuments.sort((a, b) => a.id.localeCompare(b.id)); 
+                    
+                    docCountEl.textContent = `${allDocuments.length.toLocaleString()} documents loaded`;
+                    renderDocumentList(allDocuments);
+                    if (allDocuments.length > 0) {
+                        docListPlaceholder.textContent = "Select a document.";
+                        // Make AI panel usable
+                        aiResponseContentEl.textContent = "Ask a question about your entire document set. The AI will search document metadata to find relevant files, read their text, and generate a (much more accurate) answer.";
+                    } else {
+                        docListPlaceholder.textContent = "No documents found. Go to the 'Ingest' tab to upload data.";
+                        aiResponseContentEl.textContent = "Please ingest documents before using the AI assistant.";
+                    }
+                }, (error) => {
+                    console.error("Error listening to documents:", error);
+                    docListPlaceholder.textContent = `Error loading documents: ${error.message}`;
+                });
+            }
+
+            // Handle Document List Searching
+            docSearchEl.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                if (!searchTerm) {
+                    renderDocumentList(allDocuments);
+                    return;
+                }
+                const filteredDocs = allDocuments.filter(doc => 
+                    doc.id.toLowerCase().includes(searchTerm)
+                );
+                renderDocumentList(filteredDocs);
+            });
+            
+            // Render the list of documents on the left
+            function renderDocumentList(docs) {
+                docListEl.innerHTML = ''; 
+                
+                if (docs.length === 0) {
+                    docListPlaceholder.classList.remove('hidden');
+                    if(allDocuments.length > 0) {
+                        docListPlaceholder.textContent = "No documents match your search.";
+                    }
+                } else {
+                    docListPlaceholder.classList.add('hidden');
+                    const fragment = document.createDocumentFragment();
+                    for (const doc of docs) {
+                        const docItem = document.createElement('div');
+                        docItem.className = 'doc-item p-3 border-b border-gray-700 cursor-pointer hover:bg-gray-700 transition duration-100 truncate';
+                        docItem.textContent = doc.id;
+                        docItem.dataset.docId = doc.id;
+                        
+                        if (currentDocument && currentDocument.id === doc.id) {
+                            docItem.classList.add('selected');
+                        }
+
+                        docItem.addEventListener('click', () => {
+                            showDocument(doc);
+                        });
+                        fragment.appendChild(docItem);
+                    }
+                    docListEl.appendChild(fragment);
+                }
+            }
+            
+            /**
+             * Attempts to fetch and read a text file from storage.
+             * Tries multiple encodings, checking for BOMs first.
+             * @param {string} url - The download URL for the text file.
+             * @returns {Promise<string>} The decoded text content.
+             */
+            async function fetchAndDecodeText(url) {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch text file: ${response.statusText}`);
+                }
+                const arrayBuffer = await response.arrayBuffer();
+
+                // 1. Check for Byte Order Mark (BOM)
+                const dataView = new DataView(arrayBuffer);
+                if (dataView.byteLength >= 2) {
+                    const bom = dataView.getUint16(0, false); // Big-Endian
+                    if (bom === 0xFEFF) {
+                        console.log("Decoding as UTF-16BE (from BOM)");
+                        return new TextDecoder('utf-16be', { fatal: true }).decode(arrayBuffer.slice(2));
+                    }
+                    if (bom === 0xFFFE) {
+                        console.log("Decoding as UTF-16LE (from BOM)");
+                        return new TextDecoder('utf-16le', { fatal: true }).decode(arrayBuffer.slice(2));
+                    }
+                }
+                if (dataView.byteLength >= 3) {
+                    if (dataView.getUint8(0) === 0xEF && dataView.getUint8(1) === 0xBB && dataView.getUint8(2) === 0xBF) {
+                        console.log("Decoding as UTF-8 (from BOM)");
+                        return new TextDecoder('utf-8', { fatal: true }).decode(arrayBuffer.slice(3));
+                    }
+                }
+
+                // 2. No BOM found. Try decoding in order of probability.
+                // Most non-BOM text files in eDiscovery are UTF-16LE or UTF-8.
+                const encodingsToTry = ['utf-16le', 'utf-8', 'iso-8859-1'];
+                
+                for (const encoding of encodingsToTry) {
+                    try {
+                        const decoder = new TextDecoder(encoding, { fatal: true });
+                        const text = decoder.decode(arrayBuffer);
+                        console.log(`Successfully decoded text as ${encoding} (no BOM)`);
+                        return text;
+                    } catch (e) {
+                        console.warn(`Could not decode as ${encoding} (no BOM).`, e.message);
+                    }
+                }
+                
+                throw new Error("Could not decode text file (tried UTF-16LE, UTF-8, and iso-8859-1).");
+            }
+
+
+            // Show the selected document's data
+            async function showDocument(doc) {
+                if (!doc) return;
+                currentDocument = doc;
+                
+                // Update selected item in list
+                document.querySelectorAll('.doc-item').forEach(el => {
+                    el.classList.toggle('selected', el.dataset.docId === doc.id);
+                });
+                
+                // Switch to text tab by default *if* AI tab is not active
+                if (!aiTabBtn.classList.contains('active')) {
+                    textTabBtn.click();
+                }
+
+                // --- 1. Populate Text Panel ---
+                textPanel.textContent = "Loading text...";
+                if (doc.textStoragePath) {
+                    try {
+                        const textRef = ref(storage, doc.textStoragePath);
+                        const url = await getDownloadURL(textRef);
+                        const textContent = await fetchAndDecodeText(url);
+                        textPanel.textContent = textContent || "[This document is empty]";
+                    } catch (error) {
+                        console.error("Error loading text:", error);
+                        textPanel.textContent = `Error loading text: ${error.message}`;
+                    }
+                } else {
+                    textPanel.textContent = `No text file was ingested for this document. (Original path: ${doc["OCRPath"] || 'N/A'})`;
+                }
+
+                // --- 2. Populate Metadata Panel ---
+                metadataPanel.innerHTML = '';
+                const metadataFragment = document.createDocumentFragment();
+                const preferredKeys = ["Beg Bates", "End Bates", "_From", "_To", "_CC", "_SentDate", "_Subject", "NativeFile", "OCRPath"];
+                const sortedKeys = Object.keys(doc).sort((a, b) => {
+                    const aPref = preferredKeys.indexOf(a);
+                    const bPref = preferredKeys.indexOf(b);
+                    if (aPref > -1 && bPref > -1) return aPref - bPref; 
+                    if (aPref > -1) return -1; 
+                    if (bPref > -1) return 1;  
+                    return a.localeCompare(b); 
+                });
+
+                for (const key of sortedKeys) {
+                    if (key === 'id' || key === 'nativeStoragePath' || key === 'textStoragePath') continue; 
+                    
+                    const metaItem = document.createElement('div');
+                    metaItem.className = 'mb-3';
+                    metaItem.innerHTML = `
+                        <div class="font-bold text-gray-400 text-xs uppercase">${key}</div>
+                        <div class="text-gray-200 break-words">${doc[key] || 'N/A'}</div>
+                    `;
+                    metadataFragment.appendChild(metaItem);
+                }
+                metadataPanel.appendChild(metadataFragment);
+
+                // --- 3. Populate Native Panel ---
+                nativePanel.innerHTML = '<div class="p-4 text-gray-500">Loading native file...</div>';
+                if (doc.nativeStoragePath) {
+                    try {
+                        const storageRef = ref(storage, doc.nativeStoragePath);
+                        const url = await getDownloadURL(storageRef);
+                        
+                        const ext = doc.nativeStoragePath.split('.').pop().toLowerCase();
+                        if (['pdf', 'txt', 'html', 'htm'].includes(ext)) {
+                            nativePanel.innerHTML = `<iframe src="${url}" class="w-full h-full border-0"></iframe>`;
+                        } else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+                            nativePanel.innerHTML = `<img src="${url}" alt="Native File" class="max-w-full max-h-full object-contain">`;
+                        } else {
+                            nativePanel.innerHTML = `
+                                <div class="p-4 text-gray-400 text-center">
+                                    <p class="mb-4">File type ".${ext}" cannot be previewed.</p>
+                                    <a href="${url}" target="_blank" download
+                                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg cursor-pointer transition duration-150">
+                                        Download Native File
+                                    </a>
+                                </div>
+                            `;
+                        }
+                    } catch (error) {
+                        console.error("Error getting download URL:", error);
+                        nativePanel.innerHTML = `<div class="p-4 text-red-400">Error loading native file: ${error.message}</div>`;
+                    }
+                } else {
+                    nativePanel.innerHTML = '<div class="p-4 text-gray-500">No native file was ingested for this document.</div>';
+                }
+            }
+            
+            // --- 5. UI TABBING LOGIC ---
+            function setupTabbing(tabContainerId, panelContainerId) {
+                const tabButtons = document.querySelectorAll(`#${tabContainerId} .tab-btn`);
+                const tabPanels = document.querySelectorAll(`#${panelContainerId} .tab-panel`);
+
+                tabButtons.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        tabButtons.forEach(b => b.classList.remove('active'));
+                        tabPanels.forEach(p => p.classList.add('hidden'));
+                        
+                        btn.classList.add('active');
+                        const panelId = btn.dataset.target;
+                        document.getElementById(panelId).classList.remove('hidden');
+                    });
+                });
+            }
+            
+            setupTabbing('main-tabs', 'main-views');
+            setupTabbing('viewer-tabs', 'viewer-panels');
+
+            // --- 6. AI ASSISTANT LOGIC (REFACTORED) ---
+
+            aiQueryBtn.addEventListener('click', () => runAiQuery());
+            aiQueryInput.addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') runAiQuery();
+            });
+
+            async function runAiQuery() {
+                const userQuery = aiQueryInput.value;
+                if (!userQuery || allDocuments.length === 0) {
+                    aiResponseContentEl.textContent = "Please ask a question and ensure documents are loaded.";
+                    return;
+                }
+
+                if (!userId) {
+                    aiResponseContentEl.textContent = "Please wait for authentication to complete.";
+                    return;
+                }
+
+                aiLoadingEl.classList.remove('hidden');
+                aiResponseContentEl.classList.add('hidden');
+                aiSourcesEl.classList.add('hidden');
+                aiResponseContentEl.textContent = "";
+                aiSourcesEl.innerHTML = "";
+                aiQueryBtn.disabled = true;
+
+                console.log('AI Search Keywords:', [userQuery]); // Log the query for debugging
+
+                try {
+                    // Call the Cloud Function using the imported httpsCallable
+                    const result = await docQuery({
+                        query: userQuery,
+                        userId: userId
+                    });
+                    
+                    if (!result || !result.data) {
+                        throw new Error('No response received from server');
+                    }
+                    
+                    console.log('Cloud Function response:', result);
+                    const { answer, sources } = result.data;
+
+                    if (!answer) {
+                        throw new Error('No answer received from AI');
+                    }
+
+                    // Display response
+                    aiResponseContentEl.textContent = answer;
+
+                    // Display sources if available
+                    if (sources && sources.length > 0) {
+                        aiSourcesEl.innerHTML = '<div class="mt-4 text-gray-400">Sources:</div>';
+                        sources.forEach(source => {
+                            const sourceLink = document.createElement('div');
+                            sourceLink.className = 'ai-source-link';
+                            sourceLink.textContent = source.id;
+                            sourceLink.onclick = () => showDocument(source);
+                            aiSourcesEl.appendChild(sourceLink);
+                        });
+                    }
+                    
+                    // Display sources
+                    if (sources && sources.length > 0) {
+                        aiSourcesEl.innerHTML = '<h4 class="text-sm font-semibold text-gray-400 mb-2">Sources:</h4>';
+                        sources.forEach(docId => {
+                            const sourceLink = document.createElement('span');
+                            sourceLink.className = 'ai-source-link';
+                            sourceLink.textContent = docId;
+                            sourceLink.dataset.docId = docId;
+                            sourceLink.onclick = () => {
+                                const docToOpen = allDocuments.find(d => d.id === docId);
+                                if (docToOpen) {
+                                    showDocument(docToOpen);
+                                    textTabBtn.click();
+                                }
+                            };
+                            aiSourcesEl.appendChild(sourceLink);
+                        });
+                        aiSourcesEl.classList.remove('hidden');
+                    }
+
+                } catch (error) {
+                    console.error("AI Query Error:", error);
+                    // Extract the actual error message from the Cloud Function response
+                    const errorMessage = error.message || 
+                                      (error.details && error.details.message) || 
+                                      'Unknown error occurred';
+                    aiResponseContentEl.textContent = `Error: ${errorMessage}`;
+                    
+                    // Show error in browser console for debugging
+                    console.error('Full error details:', {
+                        message: error.message,
+                        code: error.code,
+                        details: error.details
+                    });
+                } finally {
+                    aiLoadingEl.classList.add('hidden');
+                    aiResponseContentEl.classList.remove('hidden');
+                    aiSourcesEl.classList.remove('hidden');
+                    aiQueryBtn.disabled = false;
+                }
+            }
+
+            // --- 7. MODAL (for alerts) ---
+            const modal = document.createElement('div');
+            modal.id = 'alert-modal';
+            modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 hidden';
+            modal.innerHTML = `
+                <div class="bg-gray-800 rounded-lg shadow-xl p-6 max-w-sm w-full">
+                    <p id="modal-message" class="text-gray-200 mb-4">This is an alert.</p>
+                    <button id="modal-close-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none">
+                        OK
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            const modalMessage = document.getElementById('modal-message');
+            const modalCloseBtn = document.getElementById('modal-close-btn');
+
+            function showModal(message) {
+                modalMessage.textContent = message;
+                modal.classList.remove('hidden');
+            }
+
+            modalCloseBtn.addEventListener('click', () => {
+                modal.classList.add('hidden');
+            });
+            
+            // --- KICK OFF APP ---
+            initializeAppLogic();
+        });
+
+    </script>
+</body>
+</html>
