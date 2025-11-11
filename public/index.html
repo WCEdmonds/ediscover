@@ -691,7 +691,20 @@
                     loginError.classList.add('hidden');
                 } catch (error) {
                     console.error('Login error:', error);
-                    loginError.textContent = error.message;
+
+                    // Provide helpful error messages
+                    let errorMessage = error.message;
+                    if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                        errorMessage = 'Invalid email or password. Please try again.';
+                    } else if (error.code === 'auth/invalid-email') {
+                        errorMessage = 'Invalid email address format.';
+                    } else if (error.code === 'auth/user-disabled') {
+                        errorMessage = 'This account has been disabled. Please contact support.';
+                    } else if (error.code === 'auth/too-many-requests') {
+                        errorMessage = 'Too many failed login attempts. Please try again later.';
+                    }
+
+                    loginError.textContent = errorMessage;
                     loginError.classList.remove('hidden');
                     loginBtn.disabled = false;
                     loginBtn.textContent = 'Sign In';
@@ -734,7 +747,25 @@
                     signupError.classList.add('hidden');
                 } catch (error) {
                     console.error('Signup error:', error);
-                    signupError.textContent = error.message;
+
+                    // Provide helpful error messages
+                    let errorMessage = error.message;
+                    if (error.code === 'auth/operation-not-allowed') {
+                        errorMessage = 'Email/Password authentication is not enabled. Please enable it in Firebase Console:\n' +
+                            '1. Go to https://console.firebase.google.com/\n' +
+                            '2. Select your project (ediscover)\n' +
+                            '3. Go to Authentication > Sign-in method\n' +
+                            '4. Enable "Email/Password" provider\n' +
+                            '5. Save and try again';
+                    } else if (error.code === 'auth/email-already-in-use') {
+                        errorMessage = 'This email is already registered. Please try logging in instead.';
+                    } else if (error.code === 'auth/invalid-email') {
+                        errorMessage = 'Invalid email address format.';
+                    } else if (error.code === 'auth/weak-password') {
+                        errorMessage = 'Password is too weak. Please use a stronger password.';
+                    }
+
+                    signupError.textContent = errorMessage;
                     signupError.classList.remove('hidden');
                     signupBtn.disabled = false;
                     signupBtn.textContent = 'Create Account';
