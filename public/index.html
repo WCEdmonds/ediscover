@@ -914,8 +914,7 @@
                     storage = getStorage(app);
                     
                     // Initialize Firebase Functions and create callable references
-                    functions = getFunctions(app);
-                    functions.region = 'us-central1'; // Explicitly set region
+                    functions = getFunctions(app, 'us-central1');
                     docQuery = httpsCallable(functions, 'docQuery');
                     unlockAdminMode = httpsCallable(functions, 'unlockAdminMode');
 
@@ -954,11 +953,22 @@
                             loginScreen.classList.remove('hidden');
                             signoutBtn.classList.add('hidden');
                         }
+                    }, (error) => {
+                        // Auth error (e.g. invalid API key) — show login screen with error
+                        console.error("Auth state error:", error);
+                        loginScreen.classList.remove('hidden');
+                        mainContent.classList.add('hidden');
+                        loginError.textContent = `Firebase error: ${error.message}. Check your API key configuration.`;
+                        loginError.classList.remove('hidden');
                     });
 
                 } catch (error) {
                     console.error("Firebase Init Error:", error);
                     authStatusEl.textContent = `Error: ${error.message}`;
+                    // Show login screen with error so the page isn't blank
+                    loginScreen.classList.remove('hidden');
+                    loginError.textContent = `Initialization error: ${error.message}`;
+                    loginError.classList.remove('hidden');
                 }
             }
 

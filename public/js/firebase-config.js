@@ -8,8 +8,8 @@ export const firebaseConfig = {
   projectId: "ediscover",
   storageBucket: "ediscover.firebasestorage.app",
   messagingSenderId: "634524579649",
-  appId: "1:634524579649:web:6996d2f02aab10b49213c0",
-  measurementId: "G-TY6NMLVQ88"
+  appId: "1:634524579649:web:42a208267aaffdee9213c0",
+  measurementId: "G-4ZE0MWMDCK"
 };
 
 export const appId = 'eDiscovery-App';
